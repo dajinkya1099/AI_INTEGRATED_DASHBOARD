@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 const menuItems = [
   { name: "Home", path: "/" },
   { name: "Dashboard", path: "/dashboard" },
-  { name: "Settings", path: "/settings" }
+  { name: "Settings", path: "/settings" },
+ { name: "Dynamic Data Explorer", path: "/dynamic-data-explorer" }
 ];
 
 function Sidebar() {

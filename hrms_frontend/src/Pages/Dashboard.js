@@ -4,7 +4,7 @@ function Dashboard() {
   const [data, setData] = useState({});
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/data")
+    fetch("http://127.0.0.1:8000/api/data")
       .then((res) => res.json())
       .then((data) => setData(data));
   }, []);

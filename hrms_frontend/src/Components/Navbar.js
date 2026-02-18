@@ -3,7 +3,7 @@ import React from "react";
 function Navbar() {
   return (
     <div style={styles.navbar}>
-      <h2>My React App</h2>
+      <h2>HRMS (Human Resource Management System)</h2>
     </div>
   );
 }
