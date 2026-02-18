@@ -1,17 +1,34 @@
+import { Box } from "@mui/material";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 
 function Layout({ children }) {
   return (
-    <>
+    <Box sx={{ height: "100vh", width: "100vw", display: "flex", flexDirection: "column" }}>
+      
+      {/* Navbar */}
       <Navbar />
-      <div style={{ display: "flex" }}>
+
+      {/* Main Section */}
+      <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        
+        {/* Sidebar */}
         <Sidebar />
-        <div style={{ padding: "20px", width: "100%" }}>
+
+        {/* Page Content */}
+        <Box
+          sx={{
+            flex: 1,              // 🔥 THIS FIXES YOUR WIDTH ISSUE
+            p: 2,
+            overflow: "auto",
+            backgroundColor: "#f4f6f8"
+          }}
+        >
           {children}
-        </div>
-      </div>
-    </>
+        </Box>
+
+      </Box>
+    </Box>
   );
 }
 
