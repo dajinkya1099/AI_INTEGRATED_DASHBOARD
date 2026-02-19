@@ -11,9 +11,16 @@ import { saveAs } from "file-saver";
 import { DataGrid } from "@mui/x-data-grid";
 import { SnackbarProvider, useSnackbar } from "notistack";
 import CircularProgress from "@mui/material/CircularProgress";
+import DownloadIcon from "@mui/icons-material/Download";
+import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
+
 
 import {
   Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Grid,
   Paper,
   Typography,
@@ -33,24 +40,11 @@ export default function QueryBuilder() {
 
   /* ---------------- SAMPLE DATA ---------------- */
 
-  const schemas = ["public", "hr"];
-
-  const tables = {
-    public: ["employees", "departments"],
-    hr: ["attendance"]
-  };
-
-  const sampleColumns = {
-    employees: ["id", "employee_name", "salary", "department"],
-    departments: ["id", "department_name"],
-    attendance: ["emp_id", "attendance_date", "status"]
-  };
 
   /* ---------------- STATE ---------------- */
 
   const [selectedSchema, setSelectedSchema] = useState("");
   const [selectedTable, setSelectedTable] = useState("");
-  const [columns, setColumns] = useState([]);
   const [selectedColumns, setSelectedColumns] = useState([]);
   const [aggregates, setAggregates] = useState({});
   const [whereConditions, setWhereConditions] = useState([]);
@@ -64,58 +58,143 @@ export default function QueryBuilder() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
-  const [joinTable, setJoinTable] = useState("");
-  const [joinType, setJoinType] = useState("INNER JOIN");
-  const [joinCondition, setJoinCondition] = useState("");
-  const rowsPerPage = 6;
+  const [schemas, setSchemas] = useState([]);
+const [schemaData, setSchemaData] = useState(null); // stores full schema JSON
+const [joinTable, setJoinTable] = useState("");
+const [joinType, setJoinType] = useState("INNER JOIN");
+const [joinCondition, setJoinCondition] = useState("");
+const [autoJoinConditions, setAutoJoinConditions] = useState([]);
+const [useCustomJoin, setUseCustomJoin] = useState(false);
+const [availableColumns, setAvailableColumns] = useState([]);
+const [openDialog, setOpenDialog] = useState(false);
+const [formValue, setFormValue] = useState("");
 
-  const handleRunQuery = () => {
-  if (!generatedQuery) return;
-
-  setLoading(true);
-
-  setTimeout(() => {
-    const dummyResponse = {
-      query: generatedQuery,
-      rows: [
-        { id: 1, name: "Ajay", salary: 50000 },
-        { id: 2, name: "Rohit", salary: 60000 },
-        { id: 3, name: "Sneha", salary: 55000 },
-        { id: 4, name: "Amit", salary: 70000 },
-        { id: 5, name: "Priya", salary: 52000 },
-        { id: 6, name: "Karan", salary: 48000 },
-        { id: 7, name: "Neha", salary: 75000 },
-        { id: 8, name: "Vikas", salary: 62000 },
-        { id: 9, name: "Pooja", salary: 53000 },
-        { id: 10, name: "Rahul", salary: 67000 },
-        { id: 11, name: "Pranjal", salary: 67000 },
-        { id: 12, name: "Rohit", salary: 67000 },
-        { id: 13, name: "Ram", salary: 67000 },
-        { id: 14, name: "Sagar", salary: 67000 },
-        { id: 15, name: "Rahul Patil", salary: 67000 }
-      ]
-    };
-
-    setQueryResult(dummyResponse.rows);
-    setLoading(false);
-
-    enqueueSnackbar("Query executed successfully!", {
-      variant: "success"
-    });
-
-  }, 1200); // simulate backend delay
-};
-
-
-
-
-  /* ---------------- LOAD COLUMNS ---------------- */
+  const rowsPerPage = 4;
 
   useEffect(() => {
-    if (selectedSchema && selectedTable) {
-      setColumns(sampleColumns[selectedTable] || []);
+  fetch("http://localhost:8282/schemas")
+    .then((res) => res.json())
+    .then((data) => {
+      console.log("Schemas:", data);
+      setSchemas(data.schemas || []);
+    })
+    .catch((err) => {
+      console.error("Error fetching schemas:", err);
+    });
+}, []);
+
+useEffect(() => {
+  if (!selectedTable || !joinTable || !schemaData?.tables) return;
+
+  const mainTableObj = schemaData.tables.find(
+    (t) => t.name === selectedTable
+  );
+
+  const joinTableObj = schemaData.tables.find(
+    (t) => t.name === joinTable
+  );
+
+  let detectedConditions = [];
+
+  // Check FK in main table
+  mainTableObj?.columns?.forEach((col) => {
+    col.constraints?.forEach((c) => {
+      if (
+        c.type === "FOREIGN KEY" &&
+        c.references?.table === joinTable
+      ) {
+        detectedConditions.push(
+          `${selectedTable}.${col.name} = ${joinTable}.${c.references.column}`
+        );
+      }
+    });
+  });
+
+  // Check FK in join table
+  joinTableObj?.columns?.forEach((col) => {
+    col.constraints?.forEach((c) => {
+      if (
+        c.type === "FOREIGN KEY" &&
+        c.references?.table === selectedTable
+      ) {
+        detectedConditions.push(
+          `${joinTable}.${col.name} = ${selectedTable}.${c.references.column}`
+        );
+      }
+    });
+  });
+
+  setAutoJoinConditions(detectedConditions);
+  setJoinCondition("");
+  setUseCustomJoin(false);
+
+}, [selectedTable, joinTable, schemaData]);
+
+useEffect(() => {
+  if (!schemaData?.tables) return;
+
+  const getColumnsFromTable = (tableName) => {
+    const tableObj = schemaData.tables.find(t => t.name === tableName);
+    if (!tableObj?.columns) return [];
+
+    return tableObj.columns.map(col => ({
+      label: `${tableName}.${col.name}`,
+      value: `${tableName}.${col.name}`
+    }));
+  };
+
+  const mainCols = selectedTable ? getColumnsFromTable(selectedTable) : [];
+  const joinCols = joinTable ? getColumnsFromTable(joinTable) : [];
+
+  setAvailableColumns([...mainCols, ...joinCols]);
+
+}, [selectedTable, joinTable, schemaData]);
+
+const handleRunQuery = async () => {
+  if (!generatedQuery || !selectedSchema) return;
+console.log("Selected Schema:", selectedSchema);
+  console.log("Generated Query:", generatedQuery);
+  setLoading(true);
+
+  try {
+    const response = await fetch(
+      "http://localhost:8282/get-db-level-data-by-schemaName-and-query",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          schemaName: selectedSchema,
+          query: generatedQuery,
+          textQue: "",
+          dbJsonData: ""
+        })
+      }
+    );
+    console.log("Raw Response:", response);
+    const data = await response.json();
+    console.log("Backend Data:", data);
+
+    if (data.error) {
+      enqueueSnackbar(data.error, { variant: "error" });
+      setQueryResult([]);
+    } else {
+       setQueryResult(data.rows || []); 
+      enqueueSnackbar("Query executed successfully!", {
+        variant: "success"
+      });
     }
-  }, [selectedSchema, selectedTable]);
+
+  } catch (error) {
+    console.error("Error executing query:", error);
+    enqueueSnackbar("Backend connection failed!", {
+      variant: "error"
+    });
+  }
+
+  setLoading(false);
+};
 
   /* ---------------- HELPERS ---------------- */
 
@@ -210,7 +289,6 @@ export default function QueryBuilder() {
   const clearAll = () => {
     setSelectedSchema("");
     setSelectedTable("");
-    setColumns([]);
     setSelectedColumns([]);
     setAggregates({});
     setWhereConditions([]);
@@ -226,19 +304,25 @@ export default function QueryBuilder() {
 );
 
 const downloadPDF = () => {
-  if (queryResult.length === 0) return;
+  const doc = new jsPDF("landscape"); // 👈 landscape for many columns
 
-  const doc = new jsPDF();
+  if (!queryResult || queryResult.length === 0) return;
 
-  const tableColumn = Object.keys(queryResult[0]);
-  const tableRows = queryResult.map(row => Object.values(row));
+  const columns = Object.keys(queryResult[0]);
 
-  doc.text("Query Result", 14, 15);
+  const rows = queryResult.map(row =>
+    columns.map(col => row[col])
+  );
 
   autoTable(doc, {
-    head: [tableColumn],
-    body: tableRows,
-    startY: 20
+    head: [columns],
+    body: rows,
+    styles: {
+      fontSize: 8
+    },
+    headStyles: {
+      fillColor: [25, 118, 210]
+    }
   });
 
   doc.save("query_result.pdf");
@@ -264,7 +348,93 @@ const downloadExcel = () => {
   saveAs(data, "query_result.xlsx");
 };
 
+const selectedTableData = schemaData?.tables?.find(
+  (table) => table.name === selectedTable
+);
 
+const columns = selectedTableData?.columns || [];
+const renderTableColumns = (tableName) => {
+  const tableObj = schemaData?.tables?.find(
+    (t) => t.name === tableName
+  );
+
+  if (!tableObj?.columns) return null;
+
+  return (
+    <>
+      <Typography mt={2} fontWeight="bold">
+        {tableName} Columns
+      </Typography>
+
+      <Grid container spacing={2}>
+        {tableObj.columns.map((colObj) => {
+          const fullName = `${tableName}.${colObj.name}`;
+
+          return (
+            <Grid item xs={4} key={fullName}>
+              <Box
+                sx={{
+                  border: "1px solid #e0e0e0",
+                  borderRadius: 2,
+                  p: 1,
+                  background: "#fafafa"
+                }}
+              >
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={selectedColumns.includes(fullName)}
+                      onChange={() => handleColumnCheck(fullName)}
+                    />
+                  }
+                  label={`${colObj.name} (${colObj.type})`}
+                />
+
+                <Select
+                  fullWidth
+                  size="small"
+                  value={aggregates[fullName] || ""}
+                  onChange={(e) =>
+                    setAggregates({
+                      ...aggregates,
+                      [fullName]: e.target.value || null
+                    })
+                  }
+                >
+                  <MenuItem value="">None</MenuItem>
+                  <MenuItem value="SUM">SUM</MenuItem>
+                  <MenuItem value="AVG">AVG</MenuItem>
+                  <MenuItem value="COUNT">COUNT</MenuItem>
+                  <MenuItem value="MAX">MAX</MenuItem>
+                  <MenuItem value="MIN">MIN</MenuItem>
+                </Select>
+              </Box>
+            </Grid>
+          );
+        })}
+      </Grid>
+    </>
+  );
+};
+
+const handleSubmit = async () => {
+  try {
+    const response = await fetch("http://localhost:8282/schemas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value: formValue })
+    });
+
+    const result = await response.json();
+
+    // Open new page
+    window.open("/custom-response", "_blank");
+
+    setOpenDialog(false);
+  } catch (error) {
+    console.error(error);
+  }
+};
   /* ================= UI ================= */
 
   return (
@@ -317,12 +487,23 @@ const downloadExcel = () => {
         <FormControl fullWidth margin="normal">
           <InputLabel>Schema</InputLabel>
           <Select
-            value={selectedSchema}
-            onChange={(e) => {
-              setSelectedSchema(e.target.value);
-              setSelectedTable("");
-            }}
-          >
+  value={selectedSchema}
+  onChange={(e) => {
+    const schemaName = e.target.value;
+    setSelectedSchema(schemaName);
+    setSelectedTable("");
+
+    fetch(`http://localhost:8282/get-schema-by-schemaName?schemaName=${schemaName}`)
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Schema Data:", data);
+        setSchemaData(data);
+      })
+      .catch((err) => {
+        console.error("Error fetching schema details:", err);
+      });
+  }}
+>
             {schemas.map((s) => (
               <MenuItem key={s} value={s}>{s}</MenuItem>
             ))}
@@ -330,72 +511,56 @@ const downloadExcel = () => {
         </FormControl>
 
         {/* Table */}
-        {selectedSchema && (
-          <FormControl fullWidth margin="normal">
-            <InputLabel>Table</InputLabel>
-            <Select
-              value={selectedTable}
-              onChange={(e) => setSelectedTable(e.target.value)}
-            >
-              {tables[selectedSchema].map((t) => (
-                <MenuItem key={t} value={t}>{t}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        )}
+        {selectedSchema && schemaData?.tables && (
+  <FormControl fullWidth margin="normal">
+    <InputLabel>Table</InputLabel>
+    <Select
+      value={selectedTable}
+      onChange={(e) => setSelectedTable(e.target.value)}
+    >
+      {schemaData.tables.map((table) => (
+        <MenuItem key={table.name} value={table.name}>
+          {table.name}
+        </MenuItem>
+      ))}
+    </Select>
+  </FormControl>
+)}
 
-        {/* Columns */}
-        {columns.length > 0 && (
-          <>
-            <Typography mt={2}>Columns</Typography>
-            {columns.map((col) => (
-              <Grid container key={col} spacing={1} alignItems="center">
-                <Grid item xs={6}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={selectedColumns.includes(col)}
-                        onChange={() => handleColumnCheck(col)}
-                      />
-                    }
-                    label={col}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <Select
-                    fullWidth
-                    size="small"
-                    value={aggregates[col] || ""}
-                    onChange={(e) =>
-                      setAggregates({
-                        ...aggregates,
-                        [col]: e.target.value || null
-                      })
-                    }
-                  >
-                    <MenuItem value="">None</MenuItem>
-                    <MenuItem value="SUM">SUM</MenuItem>
-                    <MenuItem value="AVG">AVG</MenuItem>
-                    <MenuItem value="COUNT">COUNT</MenuItem>
-                    <MenuItem value="MAX">MAX</MenuItem>
-                    <MenuItem value="MIN">MIN</MenuItem>
-                  </Select>
-                </Grid>
-              </Grid>
-            ))}
-          </>
-        )}
+{/* Columns Section */}
+{selectedTable && (
+  <>
+    <Typography mt={3} fontWeight="bold">
+      Columns
+    </Typography>
+
+    <Box
+      sx={{
+        maxHeight: 350,
+        overflowY: "auto",
+        border: "1px solid #ddd",
+        borderRadius: 3,
+        p: 2,
+        mt: 1,
+        background: "white"
+      }}
+    >
+      {/* Main Table Columns */}
+      {renderTableColumns(selectedTable)}
+
+      {/* Join Table Columns */}
+      {joinTable && renderTableColumns(joinTable)}
+    </Box>
+  </>
+)}
 
         <Typography mt={4} mb={1} fontWeight="bold">
   JOIN Configuration
 </Typography>
 
-<Box
-  display="flex"
-  flexDirection="column"
-  gap={2}   // 👈 this adds vertical spacing
->
-  {/* Join Table Dropdown */}
+<Box display="flex" flexDirection="column" gap={2}>
+
+  {/* Join Table */}
   <TextField
     select
     label="Join Table"
@@ -403,17 +568,16 @@ const downloadExcel = () => {
     onChange={(e) => setJoinTable(e.target.value)}
     fullWidth
   >
-    {selectedSchema &&
-      tables[selectedSchema]
-        .filter((table) => table !== selectedTable)
-        .map((table) => (
-          <MenuItem key={table} value={table}>
-            {table}
-          </MenuItem>
-        ))}
+    {schemaData?.tables
+      ?.filter((t) => t.name !== selectedTable)
+      .map((t) => (
+        <MenuItem key={t.name} value={t.name}>
+          {t.name}
+        </MenuItem>
+      ))}
   </TextField>
 
-  {/* Join Type Dropdown */}
+  {/* Join Type */}
   <TextField
     select
     label="Join Type"
@@ -427,15 +591,46 @@ const downloadExcel = () => {
     <MenuItem value="FULL JOIN">FULL JOIN</MenuItem>
   </TextField>
 
-  {/* Join Condition */}
-  <TextField
-    label="Join Condition (ON)"
-    placeholder="mainTable.id = joinTable.main_id"
-    value={joinCondition}
-    onChange={(e) => setJoinCondition(e.target.value)}
-    fullWidth
-  />
+  {/* Join Condition Dropdown */}
+  {joinTable && (
+    <TextField
+      select
+      label="Join Condition"
+      value={useCustomJoin ? "OTHER" : joinCondition}
+      onChange={(e) => {
+        if (e.target.value === "OTHER") {
+          setUseCustomJoin(true);
+          setJoinCondition("");
+        } else {
+          setUseCustomJoin(false);
+          setJoinCondition(e.target.value);
+        }
+      }}
+      fullWidth
+    >
+      {autoJoinConditions.map((cond, index) => (
+        <MenuItem key={index} value={cond}>
+          {cond}
+        </MenuItem>
+      ))}
+
+      <MenuItem value="OTHER">Other (Custom)</MenuItem>
+    </TextField>
+  )}
+
+  {/* Manual Condition Field */}
+  {useCustomJoin && (
+    <TextField
+      label="Custom Join Condition"
+      placeholder="table1.id = table2.user_id"
+      value={joinCondition}
+      onChange={(e) => setJoinCondition(e.target.value)}
+      fullWidth
+    />
+  )}
+
 </Box>
+
 
         {/* WHERE */}
         {columns.length > 0 && (
@@ -458,9 +653,11 @@ const downloadExcel = () => {
         setWhereConditions(updated);
       }}
     >
-      {columns.map((c) => (
-        <MenuItem key={c} value={c}>{c}</MenuItem>
-      ))}
+      {availableColumns.map((col) => (
+  <MenuItem key={col.value} value={col.value}>
+    {col.label}
+  </MenuItem>
+))}
     </Select>
   </Grid>
 
@@ -545,9 +742,11 @@ const downloadExcel = () => {
               setGroupBy(updated);
             }}
           >
-            {columns.map((c) => (
-              <MenuItem key={c} value={c}>{c}</MenuItem>
-            ))}
+            {availableColumns.map((col) => (
+  <MenuItem key={col.value} value={col.value}>
+    {col.label}
+  </MenuItem>
+))}
           </Select>
         </Grid>
 
@@ -682,9 +881,11 @@ const downloadExcel = () => {
               setOrderBy(updated);
             }}
           >
-            {columns.map((c) => (
-              <MenuItem key={c} value={c}>{c}</MenuItem>
-            ))}
+            {availableColumns.map((col) => (
+  <MenuItem key={col.value} value={col.value}>
+    {col.label}
+  </MenuItem>
+))}
           </Select>
         </Grid>
 
@@ -810,7 +1011,7 @@ const downloadExcel = () => {
     WebkitTextFillColor: "transparent"
   }}>Generated Query</Typography>
 
-       <Box
+      <Box
   sx={{
     borderRadius: 2,
     overflow: "hidden",
@@ -819,6 +1020,7 @@ const downloadExcel = () => {
     position: "relative"
   }}
 >
+
   {/* Copy Button */}
   {generatedQuery && (
     <IconButton
@@ -843,58 +1045,73 @@ const downloadExcel = () => {
   )}
 
   <SyntaxHighlighter
-  language="sql"
-  style={okaidia}
-  wrapLongLines={true}   // ✅ prevents horizontal scroll
-  customStyle={{
-    margin: 0,
-    padding: "28px",
-    minHeight: "200px",
-    maxHeight: "450px",
-    overflowY: "auto",
-    overflowX: "hidden",  // ✅ no horizontal scroll
-   fontSize: "20px",
-   fontFamily: "Fira Code, monospace",
-    lineHeight: "1.6",
-    whiteSpace: "pre-wrap",  // ✅ wrap text properly
-    wordBreak: "break-word"
-  }}
-  codeTagProps={{
+    language="sql"
+    style={okaidia}
+    wrapLongLines={true}
+    customStyle={{
+      margin: 0,
+      padding: "28px",
+      paddingBottom: "70px",   // 👈 important (space for button)
+      minHeight: "200px",
+      maxHeight: "450px",
+      overflowY: "auto",
+      overflowX: "hidden",
+      fontSize: "20px",
+      fontFamily: "Fira Code, monospace",
+      lineHeight: "1.6",
+      whiteSpace: "pre-wrap",
+      wordBreak: "break-word"
+    }}
+    codeTagProps={{
     style: {
       whiteSpace: "pre-wrap",
       wordBreak: "break-word"
     }
   }}
->
+  >
     {generatedQuery || "-- Your query will appear here"}
   </SyntaxHighlighter>
-</Box>
 
-
-{/* RUN BUTTON */}
-  <Box mt={2} display="flex" justifyContent="flex-end">
+  {/* RUN BUTTON INSIDE BOX */}
   <Button
-    variant="contained"
-     sx={{
+  variant="contained"
+  disabled={!generatedQuery}   // ❌ remove loading from disabled
+  onClick={handleRunQuery}
+  startIcon={
+    loading ? (
+      <CircularProgress size={18} sx={{ color: "#ffffff" }} />
+    ) : null
+  }
+  sx={{
+    position: "absolute",
+    bottom: 16,
+    right: 16,
     borderRadius: 3,
     textTransform: "none",
     fontWeight: 600,
-    boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
+    backgroundColor: "#2e7d32",  // success green
+    color: "#ffffff",            // white text
+    "&:hover": {
+      backgroundColor: "#1b5e20"
+    },
+    "&.Mui-disabled": {
+      backgroundColor: "#2e7d32", // keep same color
+      color: "#ffffff",
+      opacity: 1                 // remove faded effect
+    }
   }}
-    color="success"
-    disabled={!generatedQuery || loading}
-    onClick={handleRunQuery}
-    startIcon={loading && <CircularProgress size={18} color="inherit" />}
-  >
-    {loading ? "Running..." : "Run"}
-  </Button>
+>
+  {loading ? "Running..." : "Run"}
+</Button>
+
 </Box>
+
   {/* RESULT TABLE */}
-{queryResult.length > 0 && (
+{queryResult && queryResult.length > 0 && (
   <Box mt={3}>
 
-<Box mt={2} display="flex" gap={2}>
-  <Button
+<Box mt={2} display="flex" gap={2}  justifyContent="flex-end">
+  {/* <Button
     variant="contained"
     sx={{
     borderRadius: 3,
@@ -906,21 +1123,59 @@ const downloadExcel = () => {
     onClick={downloadPDF}
   >
     Download PDF
-  </Button>
+  </Button> */}
 
   <Button
-    variant="contained"
-    sx={{
+  variant="contained"
+  color="primary"
+  startIcon={<QuestionAnswerIcon />}
+  onClick={() => setOpenDialog(true)}
+  sx={{
     borderRadius: 3,
     textTransform: "none",
     fontWeight: 600,
     boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
   }}
-    color="success"
-    onClick={downloadExcel}
-  >
-    Download Excel
-  </Button>
+>
+  Ask me
+</Button>
+
+<Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+  <DialogTitle>Enter Details</DialogTitle>
+
+  <DialogContent>
+    <TextField
+      fullWidth
+      label="Enter Value"
+      value={formValue}
+      onChange={(e) => setFormValue(e.target.value)}
+      sx={{ mt: 1 }}
+    />
+  </DialogContent>
+
+  <DialogActions>
+    <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
+    <Button variant="contained" onClick={handleSubmit}>
+      Submit
+    </Button>
+  </DialogActions>
+</Dialog>
+
+  <Button
+  variant="contained"
+  color="success"
+  onClick={downloadExcel}
+  sx={{
+    borderRadius: 3,
+    minWidth: 38,          // small square button
+    width: 38,
+    height: 38,
+    backgroundColor: "#1f4c1f",
+    boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
+  }}
+>
+  <DownloadIcon />
+</Button>
 </Box>
 
    <Paper
@@ -928,10 +1183,10 @@ const downloadExcel = () => {
   sx={{
     mt: 3,
     borderRadius: 4,
-    overflow: "hidden",
     boxShadow: "0 8px 24px rgba(0,0,0,0.08)"
   }}
 >
+   <Box sx={{ overflowX: "auto" }}>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead style={{
   background: "linear-gradient(90deg,#1976d2,#42a5f5)",
@@ -977,6 +1232,7 @@ const downloadExcel = () => {
             ))}
         </tbody>
       </table>
+      </Box>
     </Paper>
 
     {/* Pagination Controls */}

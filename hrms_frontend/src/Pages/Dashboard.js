@@ -1,20 +1,25 @@
 import { useEffect, useState } from "react";
 
 function Dashboard() {
-  const [data, setData] = useState({});
+  const [schemas, setSchemas] = useState([]);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/data")
+   fetch("http://localhost:8282/schemas")
       .then((res) => res.json())
-      .then((data) => setData(data));
+      .then((data) => {
+        setSchemas(data.schemas);
+      })
+      .catch((err) => console.error(err));
   }, []);
 
   return (
     <div>
-      <h1>Dashboard</h1>
-      <p>Users: {data.users}</p>
-      <p>Revenue: {data.revenue}</p>
-      <p>Orders: {data.orders}</p>
+      <h3>Schemas</h3>
+      <ul>
+        {schemas.map((schema) => (
+          <li key={schema}>{schema}</li>
+        ))}
+      </ul>
     </div>
   );
 }
