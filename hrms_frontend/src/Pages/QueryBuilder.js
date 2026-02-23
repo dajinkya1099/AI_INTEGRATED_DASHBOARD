@@ -16,7 +16,6 @@ import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
 import { modernSelectStyle, menuItemStyle, selectMenuProps } from "../Styles/FormStyles";
 import Tooltip from "@mui/material/Tooltip";
 
-
 import {
   Box,
   Dialog,
@@ -25,6 +24,8 @@ import {
   DialogActions,
   Grid,
   Paper,
+  Radio,
+  RadioGroup,
   Typography,
   Select,
   MenuItem,
@@ -32,6 +33,7 @@ import {
   InputLabel,
   Checkbox,
   TextField,
+  Collapse,
   Button,
   IconButton,
   FormControlLabel,
@@ -75,6 +77,9 @@ const [availableColumns, setAvailableColumns] = useState([]);
 const [openDialog, setOpenDialog] = useState(false);
 const [formValue, setFormValue] = useState("");
 const [columnSearch, setColumnSearch] = useState("");
+const [inputMode, setInputMode] = useState("query"); 
+const [manualQuestion, setManualQuestion] = useState("");
+const [placeholderText, setPlaceholderText] = useState("");
 
 console.log("style",modernSelectStyle);
   const rowsPerPage = 4;
@@ -495,6 +500,20 @@ const renderTableColumns = (tableName) => {
   );
 };
 
+useEffect(() => {
+  if (inputMode === "manual") {
+    const text = "Ask something . . .";
+    let index = 0;
+
+    const interval = setInterval(() => {
+      setPlaceholderText(text.slice(0, index));
+      index++;
+      if (index > text.length) clearInterval(interval);
+    }, 60);
+
+    return () => clearInterval(interval);
+  }
+}, [inputMode]);
 
 
 
@@ -629,6 +648,105 @@ const handleSubmit = async () => {
           </Select>
         </FormControl>
 
+        {/* INPUT MODE SELECTION */}
+<Box mb={2}>
+  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+    
+  </Typography>
+
+  <RadioGroup
+    row
+    value={inputMode}
+    onChange={(e) => setInputMode(e.target.value)}
+  >
+    <FormControlLabel
+      value="query"
+      control={<Radio />}
+      label="Build Query"
+    />
+
+    <FormControlLabel
+      value="manual"
+      control={<Radio />}
+      label="Ask AI"
+    />
+  </RadioGroup>
+</Box>
+
+<Collapse in={inputMode === "manual"}>
+  <Box mt={2}
+  sx={{
+      mt: 2,
+      p: 3,
+      borderRadius: 3,
+      background: "linear-gradient(145deg, #f9fafc, #eef2f7)",
+      boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
+      position: "relative",
+      overflow: "hidden"
+    }}>
+    <TextField
+      label="Enter Your Question"
+      fullWidth
+      multiline
+      minRows={3}
+      placeholder={placeholderText}
+      value={manualQuestion}
+      onChange={(e) => setManualQuestion(e.target.value)}
+      sx={{
+    "& .MuiOutlinedInput-root": {
+      borderRadius: 3,
+      transition: "all 0.4s ease",
+      "& fieldset": {
+        borderColor: "#1976d2",
+      },
+      "&:hover fieldset": {
+        borderColor: "#1565c0",
+      },
+      "&.Mui-focused fieldset": {
+        borderWidth: "2px",
+        borderColor: "#1976d2",
+        boxShadow: "0 0 12px rgba(25,118,210,0.4)"
+      }
+    }
+  }}
+    />
+    <Box mt={2} textAlign="right">
+      <Button
+         variant="contained"
+           sx={{
+    borderRadius: 3,
+    textTransform: "none",
+    fontWeight: 600,
+    boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
+  }}
+        onClick={() => {
+          if (!manualQuestion.trim()) return;
+
+          fetch("http://localhost:8282/manual-question", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              question: manualQuestion
+            })
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              console.log("Manual Question Response:", data);
+            })
+            .catch((err) =>
+              console.error("Error:", err)
+            );
+        }}
+      >
+        View
+      </Button>
+    </Box>
+  </Box>
+  </Collapse>
+  
+<Collapse in={inputMode === "query"}>
         {/* Table */}
         {selectedSchema && schemaData?.tables && (
   <FormControl fullWidth margin="normal">
@@ -1353,7 +1471,7 @@ const handleSubmit = async () => {
             Clear All
           </Button>
         </Box>
-
+</Collapse>
       </Paper>
     </Box>
 
