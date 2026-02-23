@@ -518,21 +518,57 @@ useEffect(() => {
 
 
 const handleSubmit = async () => {
+  console.log("handleSubmit");
+  setLoading(true); // add a loading state
+  
   try {
-    const response = await fetch("http://localhost:8282/schemas", {
+    const response = await fetch("http://localhost:8282/get-react-code-using-ai", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ value: formValue })
+      body: JSON.stringify({
+        schemaName: selectedSchema,
+        query: generatedQuery,
+        textQue: formValue,
+        dbJsonData: queryResult
+      })
     });
 
     const result = await response.json();
+    console.log("result:", result);          // ← check what you're getting
+    console.log("reactCode:", result.reactCode); // ← confirm key name
 
-    // Open new page
-    window.open("/custom-response", "_blank");
+    if (result.reactCode) {
+      // 1. Set localStorage FIRST
+      localStorage.setItem("generatedReactCode", result.reactCode);
+      localStorage.setItem("generatedMeta", JSON.stringify({
+        query: generatedQuery,
+        schema: selectedSchema,
+        question: formValue,
+        generatedAt: new Date().toISOString()
+      }));
 
-    setOpenDialog(false);
+      // 2. Confirm it was saved
+      const saved = localStorage.getItem("generatedReactCode");
+      console.log("saved to localStorage:", !!saved);
+
+      // 3. THEN open new tab
+      const newTab = window.open("/custom-response", "_blank");
+      
+      // 4. If browser blocked popup, fallback to same tab navigate
+      if (!newTab) {
+        console.warn("Popup blocked! Navigating in same tab...");
+        window.location.href = "/custom-response";
+      }
+
+      setOpenDialog(false);
+    } else {
+      console.error("reactCode missing in response. Keys:", Object.keys(result));
+    }
+
   } catch (error) {
-    console.error(error);
+    console.error("Error:", error);
+  } finally {
+    setLoading(false);
   }
 };
   /* ================= UI ================= */
