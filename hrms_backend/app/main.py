@@ -74,7 +74,10 @@ def get_db_data_by_textQue(request: QueryRequest):
         sql
     )
     print("dbData ",dbData)
-    return dbData
+    return {
+        "sql": sql,
+        "data": dbData
+    }
 
 @app.post("/get-react-code-using-ai")
 def get_react_code_using_AI(request: QueryRequest):

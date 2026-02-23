@@ -15,6 +15,11 @@ import DownloadIcon from "@mui/icons-material/Download";
 import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
 import { modernSelectStyle, menuItemStyle, selectMenuProps } from "../Styles/FormStyles";
 import Tooltip from "@mui/material/Tooltip";
+import WorkIcon from "@mui/icons-material/Work";
+import PeopleIcon from "@mui/icons-material/People";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import BusinessIcon from "@mui/icons-material/Business";
 
 import {
   Box,
@@ -80,6 +85,8 @@ const [columnSearch, setColumnSearch] = useState("");
 const [inputMode, setInputMode] = useState("query"); 
 const [manualQuestion, setManualQuestion] = useState("");
 const [placeholderText, setPlaceholderText] = useState("");
+const [errorMsg, setErrorMsg] = useState("");
+ const [aiLoading, setAiLoading] = useState(false);
 
 console.log("style",modernSelectStyle);
   const rowsPerPage = 4;
@@ -311,6 +318,7 @@ console.log("Selected Schema:", selectedSchema);
     setOrderBy([]);
     setLimit("");
     setGeneratedQuery("");
+    setQueryResult([]); 
   };
    const hasAggregate = Object.values(aggregates).some(val => val);
    const aggregateColumns = selectedColumns.filter(
@@ -710,9 +718,8 @@ const handleSubmit = async () => {
 </Box>
 
 <Collapse in={inputMode === "manual"}>
-  <Box mt={2}
+  <Box mt={1}
   sx={{
-      mt: 2,
       p: 3,
       borderRadius: 3,
       background: "linear-gradient(145deg, #f9fafc, #eef2f7)",
@@ -746,6 +753,11 @@ const handleSubmit = async () => {
     }
   }}
     />
+    {errorMsg && (
+  <Typography color="error" sx={{ mt: 1 }}>
+    {errorMsg}
+  </Typography>
+)}
     <Box mt={2} textAlign="right">
       <Button
          variant="contained"
@@ -755,26 +767,51 @@ const handleSubmit = async () => {
     fontWeight: 600,
     boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
   }}
-        onClick={() => {
-          if (!manualQuestion.trim()) return;
+      onClick={async () => {
+  if (!selectedSchema) {
+  setErrorMsg("Please select schema.");
+  return;
+}
 
-          fetch("http://localhost:8282/manual-question", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              question: manualQuestion
-            })
-          })
-            .then((res) => res.json())
-            .then((data) => {
-              console.log("Manual Question Response:", data);
-            })
-            .catch((err) =>
-              console.error("Error:", err)
-            );
-        }}
+if (!manualQuestion.trim()) {
+  setErrorMsg("Please enter your question.");
+  return;
+}
+
+setErrorMsg(""); // clear if valid
+setQueryResult([]); 
+  try {
+    setAiLoading(true);
+    const res = await fetch("http://localhost:8282/get-db-level-data-by-textQue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        schemaName: selectedSchema,
+        query: "",
+        textQue: manualQuestion,
+        dbJsonData: schemaData || {}
+      })
+    });
+
+    const data = await res.json();
+
+    console.log("Manual Question Response:", data);
+
+    const rows = data?.data?.rows || [];
+    const cleanSql = (data?.sql || "")
+      .replace(/```sql|```/g, "")
+      .trim();
+
+    setGeneratedQuery(cleanSql);
+    setQueryResult(rows);
+
+  } catch (err) {
+    console.error("Error:", err);
+  }
+  finally {
+    setAiLoading(false); // ✅ stop loading
+  }
+}}
       >
         View
       </Button>
@@ -1605,7 +1642,7 @@ const handleSubmit = async () => {
   {/* RUN BUTTON INSIDE BOX */}
   <Button
   variant="contained"
-  disabled={!generatedQuery}   // ❌ remove loading from disabled
+  disabled={!generatedQuery} 
   onClick={handleRunQuery}
   startIcon={
     loading ? (
@@ -1635,6 +1672,31 @@ const handleSubmit = async () => {
 </Button>
 
 </Box>
+
+{aiLoading && (
+  <Box
+    sx={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      backdropFilter: "blur(4px)",
+      backgroundColor: "rgba(255,255,255,0.6)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 2000
+    }}
+  >
+    <Box textAlign="center">
+      <CircularProgress size={60} />
+      <Typography sx={{ mt: 2 }}>
+        AI analysing your request...
+      </Typography>
+    </Box>
+  </Box>
+)}
 
   {/* RESULT TABLE */}
 {queryResult && queryResult.length > 0 && (
@@ -1820,7 +1882,46 @@ const handleSubmit = async () => {
 
       </Paper>
     </Box>
+<Box
+  sx={{
+    position: "fixed",
+    bottom: 0,
+    left: 0,
+    width: "100%",
+    height: 40,
+    overflow: "hidden",
+    zIndex: 1500,
+    display: "flex",
+    alignItems: "center"
+  }}
+>
+  <Box
+    sx={{
+      display: "flex",
+      gap: 20,
+      animation: "moveIcons 20s linear infinite"
+    }}
+  >
+    <PeopleIcon sx={{ fontSize: 40, color: "#0d47a1" }} />
+    <WorkIcon sx={{ fontSize: 40, color: "#1565c0" }} />
+    <AssessmentIcon sx={{ fontSize: 40, color: "#1976d2" }} />
+    <PaymentsIcon sx={{ fontSize: 40, color: "#1e88e5" }} />
+    <BusinessIcon sx={{ fontSize: 40, color: "#42a5f5" }} />
+    <PeopleIcon sx={{ fontSize: 40, color: "#0d47a1" }} />
+    <WorkIcon sx={{ fontSize: 40, color: "#1565c0" }} />
+  </Box>
+
+  <style>
+    {`
+      @keyframes moveIcons {
+        from { transform: translateX(100%); }
+        to { transform: translateX(-100%); }
+      }
+    `}
+  </style>
+</Box>
 
   </Box>
+
 );
 }
