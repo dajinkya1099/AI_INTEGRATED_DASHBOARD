@@ -13,6 +13,8 @@ import { SnackbarProvider, useSnackbar } from "notistack";
 import CircularProgress from "@mui/material/CircularProgress";
 import DownloadIcon from "@mui/icons-material/Download";
 import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
+import { modernSelectStyle, menuItemStyle, selectMenuProps } from "../Styles/FormStyles";
+import Tooltip from "@mui/material/Tooltip";
 
 
 import {
@@ -32,9 +34,13 @@ import {
   TextField,
   Button,
   IconButton,
-  FormControlLabel
+  FormControlLabel,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 export default function QueryBuilder() {
 
@@ -68,7 +74,9 @@ const [useCustomJoin, setUseCustomJoin] = useState(false);
 const [availableColumns, setAvailableColumns] = useState([]);
 const [openDialog, setOpenDialog] = useState(false);
 const [formValue, setFormValue] = useState("");
+const [columnSearch, setColumnSearch] = useState("");
 
+console.log("style",modernSelectStyle);
   const rowsPerPage = 4;
 
   useEffect(() => {
@@ -289,6 +297,7 @@ console.log("Selected Schema:", selectedSchema);
   const clearAll = () => {
     setSelectedSchema("");
     setSelectedTable("");
+    setJoinTable("");
     setSelectedColumns([]);
     setAggregates({});
     setWhereConditions([]);
@@ -361,123 +370,134 @@ const renderTableColumns = (tableName) => {
   if (!tableObj?.columns) return null;
 
   return (
-    <>
-      <Typography mt={2} fontWeight="bold">
+    <Box mb={4}>
+      {/* Table Header */}
+      <Typography
+        mb={3}
+        fontWeight="600"
+        fontSize={16}
+        sx={{
+          px: 2,
+          py: 1,
+          borderRadius: 2,
+          background: "#f4f6f8",
+          color: "#333",
+          display: "inline-block"
+        }}
+      >
         {tableName} Columns
       </Typography>
 
-      <Grid container spacing={2}>
-        {tableObj.columns.map((colObj) => {
-          const fullName = `${tableName}.${colObj.name}`;
+      <Box
+  sx={{
+    display: "grid",
+    gridTemplateColumns: {
+      xs: "1fr",
+      md: "1fr 1fr"   // Exactly 2 equal columns
+    },
+    gap: 3,
+    maxWidth: 900,
+    margin: "0 auto",
+    alignItems: "stretch"
+  }}
+>
+  {tableObj.columns
+    .filter((colObj) =>
+      colObj.name.toLowerCase().includes(columnSearch.toLowerCase())
+    )
+    .map((colObj) => {
+      const fullName = `${tableName}.${colObj.name}`;
+      const isSelected = selectedColumns.includes(fullName);
 
-          return (
-            <Grid item xs={4} key={fullName}>
-              <Box
+      return (
+        <Box
+          key={fullName}
+          sx={{
+            width: 150,
+            height: "auto",              // FIXED HEIGHT (important)
+            p: 1,
+            borderRadius: 3,
+            background: "#ffffff",
+            border: isSelected
+              ? "1px solid #1976d2"
+              : "1px solid #e6edf5",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            transition: "all 0.25s ease",
+            "&:hover": {
+              boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+              transform: "translateY(-3px)"
+            }
+          }}
+        >
+          {/* Top Section */}
+          <Box display="flex" alignItems="flex-start" gap={1}>
+            <Checkbox
+              size="small"
+              checked={isSelected}
+              onChange={() => handleColumnCheck(fullName)}
+            />
+
+            <Box sx={{ overflow: "hidden" }}>
+              <Typography
+                fontWeight={600}
+                fontSize={14}
                 sx={{
-                  border: "1px solid #e0e0e0",
-                  borderRadius: 2,
-                  p: 1,
-                  background: "#fafafa"
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical"
                 }}
               >
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={selectedColumns.includes(fullName)}
-                      onChange={() => handleColumnCheck(fullName)}
-                    />
-                  }
-                  label={`${colObj.name} (${colObj.type})`}
-                />
+                {colObj.name}
+              </Typography>
 
-                <Select
-                  fullWidth
-                  size="small"
-                  value={aggregates[fullName] || ""}
-                  onChange={(e) =>
-                    setAggregates({
-                      ...aggregates,
-                      [fullName]: e.target.value || null
-                    })
-                  }
-                >
-                  <MenuItem value="">None</MenuItem>
-                  <MenuItem value="SUM">SUM</MenuItem>
-                  <MenuItem value="AVG">AVG</MenuItem>
-                  <MenuItem value="COUNT">COUNT</MenuItem>
-                  <MenuItem value="MAX">MAX</MenuItem>
-                  <MenuItem value="MIN">MIN</MenuItem>
-                </Select>
-              </Box>
-            </Grid>
-          );
-        })}
-      </Grid>
-    </>
+              <Typography fontSize={11} color="text.secondary">
+                {colObj.type}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Aggregate Dropdown */}
+          {isSelected ? (
+            <Select
+              fullWidth
+              size="small"
+              value={aggregates[fullName] || ""}
+              sx={{
+                borderRadius: 2,
+                background: "#f8fafc"
+              }}
+              onChange={(e) =>
+                setAggregates({
+                  ...aggregates,
+                  [fullName]: e.target.value || null
+                })
+              }
+            >
+              <MenuItem value="">No Aggregate</MenuItem>
+              <MenuItem value="SUM">SUM</MenuItem>
+              <MenuItem value="AVG">AVG</MenuItem>
+              <MenuItem value="COUNT">COUNT</MenuItem>
+              <MenuItem value="MAX">MAX</MenuItem>
+              <MenuItem value="MIN">MIN</MenuItem>
+            </Select>
+          ) : (
+            <Box height={40} />  // placeholder keeps height equal
+          )}
+        </Box>
+      );
+    })}
+</Box>
+    </Box>
   );
 };
 
-// const handleSubmit = async () => {
-//   try {
-//     const response = await fetch("http://localhost:8282/schemas", {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({ value: formValue })
-//     });
 
-//     const result = await response.json();
 
-//     // Open new page
-//     window.open("/custom-response", "_blank");
 
-//     setOpenDialog(false);
-//   } catch (error) {
-//     console.error(error);
-//   }
-// };
-
-// In your current component - handleSubmit
-// const handleSubmit = async () => {
-//   console.log("handleSubmit");
-//   try {
-//     const response = await fetch("http://localhost:8282/get-react-code-using-ai", {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({
-//         schemaName: selectedSchema,
-//         query: generatedQuery,
-//         textQue: formValue,
-//         dbJsonData: queryResult
-//       })
-//     });
-
-//     const result = await response.json();
-//     console.log(" result.reactCode "+ result.reactCode);
-//     if (result.status === "success" && result.reactCode) {
-//       // Store the generated HTML in localStorage before opening new tab
-//       localStorage.setItem("generatedReactCode", result.reactCode);
-//       localStorage.setItem("generatedMeta", JSON.stringify({
-//         query: generatedQuery,
-//         schema: selectedSchema,
-//         question: formValue,
-//         generatedAt: new Date().toISOString()
-//       }));
-
-//       // Open new page
-//       window.open("/custom-response", "_blank");
-//       setOpenDialog(false);
-//     } else {
-//       console.error("No reactCode in response:", result);
-//       // show error toast/snackbar here
-//     }
-
-//   } catch (error) {
-//     console.error("Visualization generation failed:", error);
-//     // show error toast/snackbar here
-//   }
-// };
-
-// handleSubmit - fixed version
 const handleSubmit = async () => {
   console.log("handleSubmit");
   setLoading(true); // add a loading state
@@ -581,9 +601,34 @@ const handleSubmit = async () => {
 </Typography>
 
         {/* Schema */}
-        <FormControl fullWidth margin="normal">
-          <InputLabel>Schema</InputLabel>
+        <FormControl fullWidth>
+          <InputLabel id="schema-label">Schema</InputLabel>
           <Select
+          label="Schema"
+        labelId="schema-label"
+          sx={{
+      borderRadius: 3,
+      backgroundColor: "#f9fafc",
+      "& .MuiOutlinedInput-notchedOutline": {
+        borderColor: "#d0d7e2"
+      },
+      "&:hover .MuiOutlinedInput-notchedOutline": {
+        borderColor: "#1976d2"
+      },
+      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+        borderColor: "#1976d2"
+      }
+    }}
+    MenuProps={{
+    PaperProps: {
+      sx: {
+        borderRadius: 3,
+        mt: 1,
+        boxShadow: "0 10px 30px rgba(0,0,0,0.15)"
+      }
+    }
+  }}
+
   value={selectedSchema}
   onChange={(e) => {
     const schemaName = e.target.value;
@@ -602,7 +647,20 @@ const handleSubmit = async () => {
   }}
 >
             {schemas.map((s) => (
-              <MenuItem key={s} value={s}>{s}</MenuItem>
+              <MenuItem key={s} value={s}
+               sx={{
+    borderRadius: 2,
+    mx: 1,
+    my: 0.5,
+    "&:hover": {
+      backgroundColor: "#e3f2fd"
+    },
+    "&.Mui-selected": {
+      backgroundColor: "#bbdefb !important",
+      fontWeight: 600
+    }
+  }}
+              >{s}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -610,13 +668,50 @@ const handleSubmit = async () => {
         {/* Table */}
         {selectedSchema && schemaData?.tables && (
   <FormControl fullWidth margin="normal">
-    <InputLabel>Table</InputLabel>
+    <InputLabel id="table-select">Table</InputLabel>
     <Select
+    label="Table"
+    id="table-select"
+     sx={{
+      borderRadius: 3,
+      backgroundColor: "#f9fafc",
+      "& .MuiOutlinedInput-notchedOutline": {
+        borderColor: "#d0d7e2"
+      },
+      "&:hover .MuiOutlinedInput-notchedOutline": {
+        borderColor: "#1976d2"
+      },
+      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+        borderColor: "#1976d2"
+      }
+    }}
+     MenuProps={{
+    PaperProps: {
+      sx: {
+        borderRadius: 3,
+        mt: 1,
+        boxShadow: "0 10px 30px rgba(0,0,0,0.15)"
+      }
+    }
+  }}
       value={selectedTable}
       onChange={(e) => setSelectedTable(e.target.value)}
     >
       {schemaData.tables.map((table) => (
-        <MenuItem key={table.name} value={table.name}>
+        <MenuItem key={table.name} value={table.name}
+        sx={{
+    borderRadius: 2,
+    mx: 1,
+    my: 0.5,
+    "&:hover": {
+      backgroundColor: "#e3f2fd"
+    },
+    "&.Mui-selected": {
+      backgroundColor: "#bbdefb !important",
+      fontWeight: 600
+    }
+  }}
+        >
           {table.name}
         </MenuItem>
       ))}
@@ -627,115 +722,211 @@ const handleSubmit = async () => {
 {/* Columns Section */}
 {selectedTable && (
   <>
-    <Typography mt={3} fontWeight="bold">
-      Columns
-    </Typography>
+    {/* <Typography
+      mt={3}
+      fontWeight="bold"
+      fontSize={18}
+      sx={{ color: "#2c3e50" }}
+    >
+    Select Columns
+    </Typography> */}
 
     <Box
       sx={{
-        maxHeight: 350,
+        maxHeight: 400,
         overflowY: "auto",
-        border: "1px solid #ddd",
         borderRadius: 3,
-        p: 2,
-        mt: 1,
-        background: "white"
+        p: 3,
+        mt: 2,
+        background: "linear-gradient(145deg, #ffffff, #f4f6f8)",
+        boxShadow: "0 6px 20px rgba(0,0,0,0.08)"
       }}
     >
-      {/* Main Table Columns */}
-      {renderTableColumns(selectedTable)}
+ {/* ONE Global Search Box */}
+    <Box mt={2} mb={3}>
+      <TextField
+        fullWidth
+        size="small"
+        placeholder="Search columns..."
+        value={columnSearch}
+        onChange={(e) => setColumnSearch(e.target.value)}
+        sx={{
+          "& .MuiOutlinedInput-root": {
+      borderRadius: 3,
+      backgroundColor: "#f9fafc"
+    }
+        }}
+      />
+    </Box>
 
-      {/* Join Table Columns */}
+      {renderTableColumns(selectedTable)}
       {joinTable && renderTableColumns(joinTable)}
     </Box>
   </>
 )}
 
-        <Typography mt={4} mb={1} fontWeight="bold">
-  JOIN Configuration
-</Typography>
 
-<Box display="flex" flexDirection="column" gap={2}>
-
-  {/* Join Table */}
-  <TextField
-    select
-    label="Join Table"
-    value={joinTable}
-    onChange={(e) => setJoinTable(e.target.value)}
-    fullWidth
+       <Accordion
+  defaultExpanded={false}   // 🔥 collapsed by default
+  sx={{
+    mt: 4,
+    borderRadius: 3,
+    boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+    "&:before": { display: "none" } // removes top line
+  }}
+>
+  <AccordionSummary
+    expandIcon={<ExpandMoreIcon />}
+    sx={{
+      borderRadius: 3,
+      background: "#f4f6f8",
+      fontWeight: 600
+    }}
   >
-    {schemaData?.tables
-      ?.filter((t) => t.name !== selectedTable)
-      .map((t) => (
-        <MenuItem key={t.name} value={t.name}>
-          {t.name}
-        </MenuItem>
-      ))}
-  </TextField>
+    <Typography fontWeight="bold">
+      JOIN
+    </Typography>
+  </AccordionSummary>
 
-  {/* Join Type */}
-  <TextField
-    select
-    label="Join Type"
-    value={joinType}
-    onChange={(e) => setJoinType(e.target.value)}
-    fullWidth
+  <AccordionDetails>
+    <Box display="flex" flexDirection="column" gap={3} sx={{p:2}}>
+       
+      {/* Your existing JOIN fields go here */}
+
+      {/* Join Table */}
+      {columns.length > 0 && (
+        <>
+      <TextField
+        select
+        label="Join Table"
+        value={joinTable}
+        onChange={(e) => setJoinTable(e.target.value)}
+        fullWidth
+        size="small"
+        sx={{
+          "& .MuiOutlinedInput-root": {
+            borderRadius: 3,
+            backgroundColor: "#f9fafc"
+          }
+        }}
+      >
+        {schemaData?.tables
+          ?.filter((t) => t.name !== selectedTable)
+          .map((t) => (
+            <MenuItem key={t.name} value={t.name}
+            sx={menuItemStyle}>
+              {t.name}
+            </MenuItem>
+          ))}
+      </TextField>
+
+      {/* Join Type */}
+      <TextField
+        select
+        label="Join Type"
+        value={joinType}
+        onChange={(e) => setJoinType(e.target.value)}
+        fullWidth
+        size="small"
+        sx={{
+          "& .MuiOutlinedInput-root": {
+            borderRadius: 3,
+            backgroundColor: "#f9fafc"
+          }
+        }}
+      >
+        <MenuItem value="INNER JOIN" sx={menuItemStyle}>INNER JOIN</MenuItem>
+        <MenuItem value="LEFT JOIN" sx={menuItemStyle}>LEFT JOIN</MenuItem>
+        <MenuItem value="RIGHT JOIN" sx={menuItemStyle}>RIGHT JOIN</MenuItem>
+        <MenuItem value="FULL JOIN" sx={menuItemStyle}>FULL JOIN</MenuItem>
+      </TextField>
+
+      {/* Join Condition */}
+      {joinTable && (
+        <TextField
+          select
+          label="Join Condition"
+          value={useCustomJoin ? "OTHER" : joinCondition}
+          onChange={(e) => {
+            if (e.target.value === "OTHER") {
+              setUseCustomJoin(true);
+              setJoinCondition("");
+            } else {
+              setUseCustomJoin(false);
+              setJoinCondition(e.target.value);
+            }
+          }}
+          fullWidth
+          size="small"
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 3,
+              backgroundColor: "#f9fafc"
+            }
+          }}
+        >
+          {autoJoinConditions.map((cond, index) => (
+            <MenuItem key={index} value={cond}
+            sx={menuItemStyle}>
+              {cond}
+            </MenuItem>
+          ))}
+
+          <MenuItem value="OTHER">Other (Custom)</MenuItem>
+        </TextField>
+      )}
+
+      {/* Custom Join Field */}
+      {useCustomJoin && (
+        <TextField
+          label="Custom Join Condition"
+          placeholder="table1.id = table2.user_id"
+          value={joinCondition}
+          onChange={(e) => setJoinCondition(e.target.value)}
+          fullWidth
+          size="small"
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 3,
+              backgroundColor: "#f9fafc"
+            }
+          }}
+        />
+      )}
+      </>
+)}
+    </Box>
+  </AccordionDetails>
+</Accordion>
+
+{/* WHERE */}
+ <Accordion
+  defaultExpanded={false}   // 🔥 collapsed by default
+  sx={{
+    mt: 4,
+    borderRadius: 3,
+    boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+    "&:before": { display: "none" } // removes top line
+  }}
+>
+<AccordionSummary
+    expandIcon={<ExpandMoreIcon />}
+    sx={{
+      borderRadius: 3,
+      background: "#f4f6f8",
+      fontWeight: 600
+    }}
   >
-    <MenuItem value="INNER JOIN">INNER JOIN</MenuItem>
-    <MenuItem value="LEFT JOIN">LEFT JOIN</MenuItem>
-    <MenuItem value="RIGHT JOIN">RIGHT JOIN</MenuItem>
-    <MenuItem value="FULL JOIN">FULL JOIN</MenuItem>
-  </TextField>
+    <Typography fontWeight="bold">
+      WHERE
+    </Typography>
+  </AccordionSummary>
 
-  {/* Join Condition Dropdown */}
-  {joinTable && (
-    <TextField
-      select
-      label="Join Condition"
-      value={useCustomJoin ? "OTHER" : joinCondition}
-      onChange={(e) => {
-        if (e.target.value === "OTHER") {
-          setUseCustomJoin(true);
-          setJoinCondition("");
-        } else {
-          setUseCustomJoin(false);
-          setJoinCondition(e.target.value);
-        }
-      }}
-      fullWidth
-    >
-      {autoJoinConditions.map((cond, index) => (
-        <MenuItem key={index} value={cond}>
-          {cond}
-        </MenuItem>
-      ))}
-
-      <MenuItem value="OTHER">Other (Custom)</MenuItem>
-    </TextField>
-  )}
-
-  {/* Manual Condition Field */}
-  {useCustomJoin && (
-    <TextField
-      label="Custom Join Condition"
-      placeholder="table1.id = table2.user_id"
-      value={joinCondition}
-      onChange={(e) => setJoinCondition(e.target.value)}
-      fullWidth
-    />
-  )}
-
-</Box>
-
-
+  <AccordionDetails>
+    <Box display="flex" flexDirection="column" gap={2}>
         {/* WHERE */}
         {columns.length > 0 && (
           <>
-            <Typography mt={4}
-  mb={1}
-  fontWeight="bold"
-  color="#374151">WHERE</Typography>
             {whereConditions.map((cond, i) => (
               <Grid container spacing={1} alignItems="center" mt={1}>
   {/* Column */}
@@ -749,9 +940,12 @@ const handleSubmit = async () => {
         updated[i].column = e.target.value;
         setWhereConditions(updated);
       }}
+      sx={modernSelectStyle}
+      MenuProps={selectMenuProps}
     >
       {availableColumns.map((col) => (
-  <MenuItem key={col.value} value={col.value}>
+  <MenuItem key={col.value} value={col.value}
+  sx={menuItemStyle}>
     {col.label}
   </MenuItem>
 ))}
@@ -769,11 +963,13 @@ const handleSubmit = async () => {
         updated[i].operator = e.target.value;
         setWhereConditions(updated);
       }}
+      sx={modernSelectStyle}
+      MenuProps={selectMenuProps}
     >
-      <MenuItem value="=">=</MenuItem>
-      <MenuItem value="!=">!=</MenuItem>
-      <MenuItem value=">">{">"}</MenuItem>
-      <MenuItem value="<">{"<"}</MenuItem>
+      <MenuItem value="=" sx={menuItemStyle}>=</MenuItem>
+      <MenuItem value="!=" sx={menuItemStyle}>!=</MenuItem>
+      <MenuItem value=">" sx={menuItemStyle}>{">"}</MenuItem>
+      <MenuItem value="<" sx={menuItemStyle}>{"<"}</MenuItem>
     </Select>
   </Grid>
 
@@ -787,7 +983,11 @@ const handleSubmit = async () => {
         updated[i].value = e.target.value;
         setWhereConditions(updated);
       }}
-      sx={{ width: 80 }} // ✅ fixed width so icon doesn't shift
+      sx={{ "& .MuiOutlinedInput-root": {
+      borderRadius: 3,   // 🔥 Rounded corners
+      backgroundColor: "#f9fafc"
+    },
+    width: 80 }} // ✅ fixed width so icon doesn't shift
     />
   </Grid>
 
@@ -817,15 +1017,37 @@ const handleSubmit = async () => {
             </Box>
           </>
         )}
+        </Box>
+</AccordionDetails>
+</Accordion>
 
         {/* GROUP BY */}
+        <Accordion
+  defaultExpanded={false}   // 🔥 collapsed by default
+  sx={{
+    mt: 4,
+    borderRadius: 3,
+    boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+    "&:before": { display: "none" } // removes top line
+  }}
+>
+<AccordionSummary
+    expandIcon={<ExpandMoreIcon />}
+    sx={{
+      borderRadius: 3,
+      background: "#f4f6f8",
+      fontWeight: 600
+    }}
+  >
+    <Typography fontWeight="bold">
+      GROUP BY
+    </Typography>
+  </AccordionSummary>
+
+  <AccordionDetails>
+    <Box display="flex" flexDirection="column" gap={2}>
 {columns.length > 0 && (
   <>
-    <Typography mt={4}
-  mb={1}
-  fontWeight="bold"
-  color="#374151">GROUP BY</Typography>
-
     {groupBy.map((col, i) => (
       <Grid container spacing={1} key={i} mt={1}>
         <Grid item xs={10}>
@@ -838,9 +1060,12 @@ const handleSubmit = async () => {
               updated[i] = e.target.value;
               setGroupBy(updated);
             }}
+            sx={modernSelectStyle}
+            MenuProps={selectMenuProps}
           >
             {availableColumns.map((col) => (
-  <MenuItem key={col.value} value={col.value}>
+  <MenuItem key={col.value} value={col.value}
+  sx={menuItemStyle}>
     {col.label}
   </MenuItem>
 ))}
@@ -868,16 +1093,37 @@ const handleSubmit = async () => {
     </Box>
   </>
 )}
+</Box>
+</AccordionDetails>
+</Accordion>
 
+<Accordion
+  defaultExpanded={false}   // 🔥 collapsed by default
+  sx={{
+    mt: 4,
+    borderRadius: 3,
+    boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+    "&:before": { display: "none" } // removes top line
+  }}
+>
+<AccordionSummary
+    expandIcon={<ExpandMoreIcon />}
+    sx={{
+      borderRadius: 3,
+      background: "#f4f6f8",
+      fontWeight: 600
+    }}
+  >
+    <Typography fontWeight="bold">
+      HAVING
+    </Typography>
+  </AccordionSummary>
 
+  <AccordionDetails>
+    <Box display="flex" flexDirection="column" gap={2}>
 {/* HAVING */}
 {columns.length > 0 && groupBy.length > 0 && hasAggregate && groupBy.some(col => col) && (
   <>
-    <Typography mt={4}
-  mb={1}
-  fontWeight="bold"
-  color="#374151">HAVING</Typography>
-
     {havingConditions.map((cond, i) => (
       <Grid container spacing={1} key={i} mt={1}>
         <Grid item xs={4}>
@@ -890,9 +1136,12 @@ const handleSubmit = async () => {
               updated[i].column = e.target.value;
               setHavingConditions(updated);
             }}
+            sx={modernSelectStyle}
+            MenuProps={selectMenuProps}
           >
             {aggregateColumns.map((c) => (
-  <MenuItem key={c} value={c}>
+  <MenuItem key={c} value={c}
+  sx={menuItemStyle}>
     {aggregates[c]}({c})
   </MenuItem>
 ))}
@@ -909,11 +1158,13 @@ const handleSubmit = async () => {
               updated[i].operator = e.target.value;
               setHavingConditions(updated);
             }}
+            sx={modernSelectStyle}
+            MenuProps={selectMenuProps}
           >
-            <MenuItem value="=">=</MenuItem>
-            <MenuItem value="!=">!=</MenuItem>
-            <MenuItem value=">">{">"}</MenuItem>
-            <MenuItem value="<">{"<"}</MenuItem>
+            <MenuItem value="=" sx={menuItemStyle}>=</MenuItem>
+            <MenuItem value="!=" sx={menuItemStyle}>!=</MenuItem>
+            <MenuItem value=">" sx={menuItemStyle}>{">"}</MenuItem>
+            <MenuItem value="<" sx={menuItemStyle}>{"<"}</MenuItem>
           </Select>
         </Grid>
 
@@ -927,7 +1178,12 @@ const handleSubmit = async () => {
               updated[i].value = e.target.value;
               setHavingConditions(updated);
             }}
-             sx={{ width: 80 }} 
+             sx={{ 
+              "& .MuiOutlinedInput-root": {
+      borderRadius: 3,
+      backgroundColor: "#f9fafc"
+    },
+              width: 80 }} 
           />
         </Grid>
 
@@ -956,15 +1212,37 @@ const handleSubmit = async () => {
 </Box>
   </>
 )}
+</Box>
+</AccordionDetails>
+</Accordion>
 
 {/* ORDER BY */}
+<Accordion
+  defaultExpanded={false}   // 🔥 collapsed by default
+  sx={{
+    mt: 4,
+    borderRadius: 3,
+    boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+    "&:before": { display: "none" } // removes top line
+  }}
+>
+<AccordionSummary
+    expandIcon={<ExpandMoreIcon />}
+    sx={{
+      borderRadius: 3,
+      background: "#f4f6f8",
+      fontWeight: 600
+    }}
+  >
+    <Typography fontWeight="bold">
+      ORDER BY
+    </Typography>
+  </AccordionSummary>
+
+  <AccordionDetails>
+    <Box display="flex" flexDirection="column" gap={2}>
 {columns.length > 0 && (
   <>
-    <Typography mt={4}
-  mb={1}
-  fontWeight="bold"
-  color="#374151">ORDER BY</Typography>
-
     {orderBy.map((o, i) => (
       <Grid container spacing={1} key={i} mt={1}>
         <Grid item xs={6}>
@@ -977,9 +1255,12 @@ const handleSubmit = async () => {
               updated[i].column = e.target.value;
               setOrderBy(updated);
             }}
+            sx={modernSelectStyle}
+      MenuProps={selectMenuProps}
           >
             {availableColumns.map((col) => (
-  <MenuItem key={col.value} value={col.value}>
+  <MenuItem key={col.value} value={col.value}
+  sx={menuItemStyle}>
     {col.label}
   </MenuItem>
 ))}
@@ -996,9 +1277,11 @@ const handleSubmit = async () => {
               updated[i].direction = e.target.value;
               setOrderBy(updated);
             }}
+            sx={modernSelectStyle}
+      MenuProps={selectMenuProps}
           >
-            <MenuItem value="ASC">ASC</MenuItem>
-            <MenuItem value="DESC">DESC</MenuItem>
+            <MenuItem value="ASC" sx={menuItemStyle}>ASC</MenuItem>
+            <MenuItem value="DESC" sx={menuItemStyle}>DESC</MenuItem>
           </Select>
         </Grid>
 
@@ -1024,10 +1307,35 @@ const handleSubmit = async () => {
 </Box>
   </>
 )}
-
+</Box>
+</AccordionDetails>
+</Accordion>
 
         {/* LIMIT */}
-        <Box mt={3}>
+       <Accordion
+  defaultExpanded={false}   // 🔥 collapsed by default
+  sx={{
+    mt: 4,
+    borderRadius: 3,
+    boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+    "&:before": { display: "none" } // removes top line
+  }}
+>
+<AccordionSummary
+    expandIcon={<ExpandMoreIcon />}
+    sx={{
+      borderRadius: 3,
+      background: "#f4f6f8",
+      fontWeight: 600
+    }}
+  >
+    <Typography fontWeight="bold">
+      LIMIT
+    </Typography>
+  </AccordionSummary>
+
+  <AccordionDetails>
+    <Box display="flex" flexDirection="column" gap={2}>
         <TextField
   label="Limit"
   type="number"
@@ -1043,8 +1351,15 @@ const handleSubmit = async () => {
   }}
   inputProps={{ min: 0 }}
   fullWidth
+ sx={{ "& .MuiOutlinedInput-root": {
+      borderRadius: 3, 
+      backgroundColor: "#f9fafc"
+    }
+  }}
 />
 </Box>
+</AccordionDetails>
+</Accordion>
 
         {/* ACTION BUTTONS */}
         <Box mt={2} display="flex" gap={2}>
@@ -1222,20 +1537,24 @@ const handleSubmit = async () => {
     Download PDF
   </Button> */}
 
-  <Button
-  variant="contained"
-  color="primary"
-  startIcon={<QuestionAnswerIcon />}
-  onClick={() => setOpenDialog(true)}
-  sx={{
-    borderRadius: 3,
-    textTransform: "none",
-    fontWeight: 600,
-    boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
-  }}
->
-  Ask me
-</Button>
+  <Tooltip title="Click to analyse data">
+  <IconButton
+    onClick={() => setOpenDialog(true)}
+    sx={{
+      backgroundColor: "#ffffff",
+      border: "1.5px solid #000",
+      color: "#000",
+      borderRadius: 2,
+      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+      "&:hover": {
+        backgroundColor: "#f5f5f5",
+        border: "1.5px solid #000"
+      }
+    }}
+  >
+    <QuestionAnswerIcon />
+  </IconButton>
+</Tooltip>
 
 <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
   <DialogTitle>Enter Details</DialogTitle>
