@@ -15,11 +15,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
 import { modernSelectStyle, menuItemStyle, selectMenuProps } from "../Styles/FormStyles";
 import Tooltip from "@mui/material/Tooltip";
-import WorkIcon from "@mui/icons-material/Work";
-import PeopleIcon from "@mui/icons-material/People";
-import AssessmentIcon from "@mui/icons-material/Assessment";
-import PaymentsIcon from "@mui/icons-material/Payments";
-import BusinessIcon from "@mui/icons-material/Business";
+import ModernBottomBar from "../Components/BottomBar";
 
 import {
   Box,
@@ -584,7 +580,8 @@ const handleSubmit = async () => {
   return (
   <Box
   sx={{
-    height: "100vh",    // 👈 full screen initially
+    height: "100vh",  
+     pb: "100px",
     width: "100%",
     display: "flex",
     alignItems: "stretch",
@@ -1832,7 +1829,7 @@ setQueryResult([]);
     </Paper>
 
     {/* Pagination Controls */}
-    <Box  mt={3}
+    <Box  mt={1}
   display="flex"
   justifyContent="space-between"
   alignItems="center"
@@ -1847,7 +1844,7 @@ setQueryResult([]);
          sx={{
     borderRadius: 3,
     textTransform: "none",
-    fontWeight: 600
+    fontWeight: 500
   }}
         disabled={currentPage === 1}
         onClick={() => setCurrentPage(currentPage - 1)}
@@ -1882,44 +1879,10 @@ setQueryResult([]);
 
       </Paper>
     </Box>
-<Box
-  sx={{
-    position: "fixed",
-    bottom: 0,
-    left: 0,
-    width: "100%",
-    height: 40,
-    overflow: "hidden",
-    zIndex: 1500,
-    display: "flex",
-    alignItems: "center"
-  }}
->
-  <Box
-    sx={{
-      display: "flex",
-      gap: 20,
-      animation: "moveIcons 20s linear infinite"
-    }}
-  >
-    <PeopleIcon sx={{ fontSize: 40, color: "#0d47a1" }} />
-    <WorkIcon sx={{ fontSize: 40, color: "#1565c0" }} />
-    <AssessmentIcon sx={{ fontSize: 40, color: "#1976d2" }} />
-    <PaymentsIcon sx={{ fontSize: 40, color: "#1e88e5" }} />
-    <BusinessIcon sx={{ fontSize: 40, color: "#42a5f5" }} />
-    <PeopleIcon sx={{ fontSize: 40, color: "#0d47a1" }} />
-    <WorkIcon sx={{ fontSize: 40, color: "#1565c0" }} />
-  </Box>
-
-  <style>
-    {`
-      @keyframes moveIcons {
-        from { transform: translateX(100%); }
-        to { transform: translateX(-100%); }
-      }
-    `}
-  </style>
-</Box>
+<>
+  {/* Your page content */}
+  <ModernBottomBar />
+</>
 
   </Box>
 
