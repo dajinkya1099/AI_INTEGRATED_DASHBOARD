@@ -4,8 +4,8 @@ from pydantic import BaseModel
 from typing import Any
 from app.query_generator import generate_sql
 from app.schema_generator import execute_sql_get_db_data_by_schemaName_query,parse_schema_text,get_user_schema_names
-from app.react_code_generator import generate_react_visualization
-# from app.react_code_generator_agent import generate_react_visualization
+# from app.react_code_generator import generate_react_visualization
+from app.react_code_generator_agent import generate_react_visualization
 
 app = FastAPI()
 
