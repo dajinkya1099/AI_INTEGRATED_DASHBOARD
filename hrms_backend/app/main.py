@@ -6,6 +6,8 @@ from app.query_generator import generate_sql
 from app.schema_generator import execute_sql_get_db_data_by_schemaName_query,parse_schema_text,get_user_schema_names
 # from app.react_code_generator import generate_react_visualization
 from app.react_code_generator_agent import generate_react_visualization
+import json
+from app.ai_suggestions import build_prompt_for_ai_suggestions,ollama_model_call_for_ai_suggestions,apply_ai_suggestions
 
 app = FastAPI()
 
@@ -91,4 +93,40 @@ def get_react_code_using_AI(request: QueryRequest):
     # )
     print("dbData ",react_code)
     return react_code
+
+
+@app.post("/get-ai-suggestions")
+def get_ai_suggestions(request: QueryRequest):
+    print("Generating AI Suggestions...")
+    print("sample data ",request.dbJsonData)
+    # Limit data sent to AI (VERY IMPORTANT)
+    sample_data = request.dbJsonData[:10] if isinstance(request.dbJsonData, list) else request.dbJsonData
+
+    prompt = build_prompt_for_ai_suggestions(sample_data)
+
+    ai_response = ollama_model_call_for_ai_suggestions(prompt)
+    print("ai_response ",ai_response)
+    try:
+        # ------------------- SANITIZE -------------------
+        # Remove extra whitespace/newlines
+        ai_response_clean = ai_response.strip()
+
+        # Optional: Remove markdown code blocks if AI returns ```json ... ```
+        if ai_response_clean.startswith("```"):
+            ai_response_clean = "\n".join(ai_response_clean.splitlines()[1:-1]).strip()
+
+        # Parse JSON
+        parsed = json.loads(ai_response_clean)
+        ai_suggestions = parsed.get("suggestions", [])
+
+        # Apply AI suggestions to your full dataset
+        final_suggestions = apply_ai_suggestions(request.dbJsonData, ai_suggestions)
+        print("Final suggestions:", final_suggestions)
+
+        return final_suggestions
+
+    except json.JSONDecodeError as e:
+        print("JSON Parse Error:", e)
+        print("AI response was invalid JSON:", ai_response)
+        return {"suggestions": []}
   

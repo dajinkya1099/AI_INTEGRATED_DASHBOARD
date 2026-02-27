@@ -20,7 +20,7 @@ def ollama_model_call(prompt):
                 "prompt": prompt,
                 "stream": False
             },
-            timeout=200
+            timeout=800
         )
 
         print("STATUS:", response.status_code)

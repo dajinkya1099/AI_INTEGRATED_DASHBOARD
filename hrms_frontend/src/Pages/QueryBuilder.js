@@ -16,6 +16,7 @@ import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
 import { modernSelectStyle, menuItemStyle, selectMenuProps } from "../Styles/FormStyles";
 import Tooltip from "@mui/material/Tooltip";
 import ModernBottomBar from "../Components/BottomBar";
+import LinearProgress from "@mui/material/LinearProgress";
 
 import {
   Box,
@@ -68,149 +69,153 @@ export default function QueryBuilder() {
   const [loading, setLoading] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
   const [schemas, setSchemas] = useState([]);
-const [schemaData, setSchemaData] = useState(null); // stores full schema JSON
-const [joinTable, setJoinTable] = useState("");
-const [joinType, setJoinType] = useState("INNER JOIN");
-const [joinCondition, setJoinCondition] = useState("");
-const [autoJoinConditions, setAutoJoinConditions] = useState([]);
-const [useCustomJoin, setUseCustomJoin] = useState(false);
-const [availableColumns, setAvailableColumns] = useState([]);
-const [openDialog, setOpenDialog] = useState(false);
-const [formValue, setFormValue] = useState("");
-const [columnSearch, setColumnSearch] = useState("");
-const [inputMode, setInputMode] = useState("query"); 
-const [manualQuestion, setManualQuestion] = useState("");
-const [placeholderText, setPlaceholderText] = useState("");
-const [errorMsg, setErrorMsg] = useState("");
- const [aiLoading, setAiLoading] = useState(false);
+  const [schemaData, setSchemaData] = useState(null); // stores full schema JSON
+  const [joinTable, setJoinTable] = useState("");
+  const [joinType, setJoinType] = useState("INNER JOIN");
+  const [joinCondition, setJoinCondition] = useState("");
+  const [autoJoinConditions, setAutoJoinConditions] = useState([]);
+  const [useCustomJoin, setUseCustomJoin] = useState(false);
+  const [availableColumns, setAvailableColumns] = useState([]);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [formValue, setFormValue] = useState("");
+  const [columnSearch, setColumnSearch] = useState("");
+  const [inputMode, setInputMode] = useState("query");
+  const [manualQuestion, setManualQuestion] = useState("");
+  const [placeholderText, setPlaceholderText] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [promptErrorMsg, setPromptErrorMsg] = useState("");
+  const [aiPromotLoading, setAiPromptLoading] = useState(false);
+  const [analysisMode, setAnalysisMode] = useState(null);
+  const [aiSuggestions, setAiSuggestions] = useState([]);
 
-console.log("style",modernSelectStyle);
+  console.log("style", modernSelectStyle);
   const rowsPerPage = 4;
 
   useEffect(() => {
-  fetch("http://localhost:8282/schemas")
-    .then((res) => res.json())
-    .then((data) => {
-      console.log("Schemas:", data);
-      setSchemas(data.schemas || []);
-    })
-    .catch((err) => {
-      console.error("Error fetching schemas:", err);
-    });
-}, []);
+    fetch("http://localhost:8282/schemas")
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Schemas:", data);
+        setSchemas(data.schemas || []);
+      })
+      .catch((err) => {
+        console.error("Error fetching schemas:", err);
+      });
+  }, []);
 
-useEffect(() => {
-  if (!selectedTable || !joinTable || !schemaData?.tables) return;
+  useEffect(() => {
+    if (!selectedTable || !joinTable || !schemaData?.tables) return;
 
-  const mainTableObj = schemaData.tables.find(
-    (t) => t.name === selectedTable
-  );
-
-  const joinTableObj = schemaData.tables.find(
-    (t) => t.name === joinTable
-  );
-
-  let detectedConditions = [];
-
-  // Check FK in main table
-  mainTableObj?.columns?.forEach((col) => {
-    col.constraints?.forEach((c) => {
-      if (
-        c.type === "FOREIGN KEY" &&
-        c.references?.table === joinTable
-      ) {
-        detectedConditions.push(
-          `${selectedTable}.${col.name} = ${joinTable}.${c.references.column}`
-        );
-      }
-    });
-  });
-
-  // Check FK in join table
-  joinTableObj?.columns?.forEach((col) => {
-    col.constraints?.forEach((c) => {
-      if (
-        c.type === "FOREIGN KEY" &&
-        c.references?.table === selectedTable
-      ) {
-        detectedConditions.push(
-          `${joinTable}.${col.name} = ${selectedTable}.${c.references.column}`
-        );
-      }
-    });
-  });
-
-  setAutoJoinConditions(detectedConditions);
-  setJoinCondition("");
-  setUseCustomJoin(false);
-
-}, [selectedTable, joinTable, schemaData]);
-
-useEffect(() => {
-  if (!schemaData?.tables) return;
-
-  const getColumnsFromTable = (tableName) => {
-    const tableObj = schemaData.tables.find(t => t.name === tableName);
-    if (!tableObj?.columns) return [];
-
-    return tableObj.columns.map(col => ({
-      label: `${tableName}.${col.name}`,
-      value: `${tableName}.${col.name}`
-    }));
-  };
-
-  const mainCols = selectedTable ? getColumnsFromTable(selectedTable) : [];
-  const joinCols = joinTable ? getColumnsFromTable(joinTable) : [];
-
-  setAvailableColumns([...mainCols, ...joinCols]);
-
-}, [selectedTable, joinTable, schemaData]);
-
-const handleRunQuery = async () => {
-  if (!generatedQuery || !selectedSchema) return;
-console.log("Selected Schema:", selectedSchema);
-  console.log("Generated Query:", generatedQuery);
-  setLoading(true);
-
-  try {
-    const response = await fetch(
-      "http://localhost:8282/get-db-level-data-by-schemaName-and-query",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          schemaName: selectedSchema,
-          query: generatedQuery,
-          textQue: "",
-          dbJsonData: ""
-        })
-      }
+    const mainTableObj = schemaData.tables.find(
+      (t) => t.name === selectedTable
     );
-    console.log("Raw Response:", response);
-    const data = await response.json();
-    console.log("Backend Data:", data);
 
-    if (data.error) {
-      enqueueSnackbar(data.error, { variant: "error" });
-      setQueryResult([]);
-    } else {
-       setQueryResult(data.rows || []); 
-      enqueueSnackbar("Query executed successfully!", {
-        variant: "success"
+    const joinTableObj = schemaData.tables.find(
+      (t) => t.name === joinTable
+    );
+
+    let detectedConditions = [];
+
+    // Check FK in main table
+    mainTableObj?.columns?.forEach((col) => {
+      col.constraints?.forEach((c) => {
+        if (
+          c.type === "FOREIGN KEY" &&
+          c.references?.table === joinTable
+        ) {
+          detectedConditions.push(
+            `${selectedTable}.${col.name} = ${joinTable}.${c.references.column}`
+          );
+        }
+      });
+    });
+
+    // Check FK in join table
+    joinTableObj?.columns?.forEach((col) => {
+      col.constraints?.forEach((c) => {
+        if (
+          c.type === "FOREIGN KEY" &&
+          c.references?.table === selectedTable
+        ) {
+          detectedConditions.push(
+            `${joinTable}.${col.name} = ${selectedTable}.${c.references.column}`
+          );
+        }
+      });
+    });
+
+    setAutoJoinConditions(detectedConditions);
+    setJoinCondition("");
+    setUseCustomJoin(false);
+
+  }, [selectedTable, joinTable, schemaData]);
+
+  useEffect(() => {
+    if (!schemaData?.tables) return;
+
+    const getColumnsFromTable = (tableName) => {
+      const tableObj = schemaData.tables.find(t => t.name === tableName);
+      if (!tableObj?.columns) return [];
+
+      return tableObj.columns.map(col => ({
+        label: `${tableName}.${col.name}`,
+        value: `${tableName}.${col.name}`
+      }));
+    };
+
+    const mainCols = selectedTable ? getColumnsFromTable(selectedTable) : [];
+    const joinCols = joinTable ? getColumnsFromTable(joinTable) : [];
+
+    setAvailableColumns([...mainCols, ...joinCols]);
+
+  }, [selectedTable, joinTable, schemaData]);
+
+  const handleRunQuery = async () => {
+    if (!generatedQuery || !selectedSchema) return;
+    console.log("Selected Schema:", selectedSchema);
+    console.log("Generated Query:", generatedQuery);
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        "http://localhost:8282/get-db-level-data-by-schemaName-and-query",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            schemaName: selectedSchema,
+            query: generatedQuery,
+            textQue: "",
+            dbJsonData: ""
+          })
+        }
+      );
+      console.log("Raw Response:", response);
+      const data = await response.json();
+      console.log("Backend Data:", data);
+
+      if (data.error) {
+        enqueueSnackbar(data.error, { variant: "error" });
+        setQueryResult([]);
+      } else {
+        setQueryResult(data.rows || []);
+        enqueueSnackbar("Query executed successfully!", {
+          variant: "success"
+        });
+      }
+
+    } catch (error) {
+      console.error("Error executing query:", error);
+      enqueueSnackbar("Backend connection failed!", {
+        variant: "error"
       });
     }
 
-  } catch (error) {
-    console.error("Error executing query:", error);
-    enqueueSnackbar("Backend connection failed!", {
-      variant: "error"
-    });
-  }
-
-  setLoading(false);
-};
+    setLoading(false);
+  };
 
   /* ---------------- HELPERS ---------------- */
 
@@ -251,17 +256,17 @@ console.log("Selected Schema:", selectedSchema);
     let selectClause =
       selectedColumns.length > 0
         ? selectedColumns
-            .map((col) =>
-              aggregates[col] ? `${aggregates[col]}(${col})` : col
-            )
-            .join(", ")
+          .map((col) =>
+            aggregates[col] ? `${aggregates[col]}(${col})` : col
+          )
+          .join(", ")
         : "*";
 
     let query = `SELECT ${selectClause} FROM ${selectedTable}`;
 
     if (joinTable && joinCondition) {
-  query += ` ${joinType} ${joinTable} ON ${joinCondition}`;
-}
+      query += ` ${joinType} ${joinTable} ON ${joinCondition}`;
+    }
 
     const buildClause = (conditions) =>
       conditions
@@ -314,567 +319,878 @@ console.log("Selected Schema:", selectedSchema);
     setOrderBy([]);
     setLimit("");
     setGeneratedQuery("");
-    setQueryResult([]); 
+    setQueryResult([]);
   };
-   const hasAggregate = Object.values(aggregates).some(val => val);
-   const aggregateColumns = selectedColumns.filter(
-  (col) => aggregates[col]
-);
-
-const downloadPDF = () => {
-  const doc = new jsPDF("landscape"); // 👈 landscape for many columns
-
-  if (!queryResult || queryResult.length === 0) return;
-
-  const columns = Object.keys(queryResult[0]);
-
-  const rows = queryResult.map(row =>
-    columns.map(col => row[col])
+  const hasAggregate = Object.values(aggregates).some(val => val);
+  const aggregateColumns = selectedColumns.filter(
+    (col) => aggregates[col]
   );
 
-  autoTable(doc, {
-    head: [columns],
-    body: rows,
-    styles: {
-      fontSize: 8
-    },
-    headStyles: {
-      fillColor: [25, 118, 210]
-    }
-  });
+  const downloadPDF = () => {
+    const doc = new jsPDF("landscape");
 
-  doc.save("query_result.pdf");
-};
+    if (!queryResult || queryResult.length === 0) return;
 
-const downloadExcel = () => {
-  if (queryResult.length === 0) return;
+    const columns = Object.keys(queryResult[0]);
 
-  const worksheet = XLSX.utils.json_to_sheet(queryResult);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Results");
+    const rows = queryResult.map(row =>
+      columns.map(col => row[col])
+    );
 
-  const excelBuffer = XLSX.write(workbook, {
-    bookType: "xlsx",
-    type: "array"
-  });
-
-  const data = new Blob([excelBuffer], {
-    type:
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8"
-  });
-
-  saveAs(data, "query_result.xlsx");
-};
-
-const selectedTableData = schemaData?.tables?.find(
-  (table) => table.name === selectedTable
-);
-
-const columns = selectedTableData?.columns || [];
-const renderTableColumns = (tableName) => {
-  const tableObj = schemaData?.tables?.find(
-    (t) => t.name === tableName
-  );
-
-  if (!tableObj?.columns) return null;
-
-  return (
-    <Box mb={4}>
-      {/* Table Header */}
-      <Typography
-        mb={3}
-        fontWeight="600"
-        fontSize={16}
-        sx={{
-          px: 2,
-          py: 1,
-          borderRadius: 2,
-          background: "#f4f6f8",
-          color: "#333",
-          display: "inline-block"
-        }}
-      >
-        {tableName} Columns
-      </Typography>
-
-      <Box
-  sx={{
-    display: "grid",
-    gridTemplateColumns: {
-      xs: "1fr",
-      md: "1fr 1fr"   // Exactly 2 equal columns
-    },
-    gap: 3,
-    maxWidth: 900,
-    margin: "0 auto",
-    alignItems: "stretch"
-  }}
->
-  {tableObj.columns
-    .filter((colObj) =>
-      colObj.name.toLowerCase().includes(columnSearch.toLowerCase())
-    )
-    .map((colObj) => {
-      const fullName = `${tableName}.${colObj.name}`;
-      const isSelected = selectedColumns.includes(fullName);
-
-      return (
-        <Box
-          key={fullName}
-          sx={{
-            width: 150,
-            height: "auto",              // FIXED HEIGHT (important)
-            p: 1,
-            borderRadius: 3,
-            background: "#ffffff",
-            border: isSelected
-              ? "1px solid #1976d2"
-              : "1px solid #e6edf5",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            transition: "all 0.25s ease",
-            "&:hover": {
-              boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
-              transform: "translateY(-3px)"
-            }
-          }}
-        >
-          {/* Top Section */}
-          <Box display="flex" alignItems="flex-start" gap={1}>
-            <Checkbox
-              size="small"
-              checked={isSelected}
-              onChange={() => handleColumnCheck(fullName)}
-            />
-
-            <Box sx={{ overflow: "hidden" }}>
-              <Typography
-                fontWeight={600}
-                fontSize={14}
-                sx={{
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical"
-                }}
-              >
-                {colObj.name}
-              </Typography>
-
-              <Typography fontSize={11} color="text.secondary">
-                {colObj.type}
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Aggregate Dropdown */}
-          {isSelected ? (
-            <Select
-              fullWidth
-              size="small"
-              value={aggregates[fullName] || ""}
-              sx={{
-                borderRadius: 2,
-                background: "#f8fafc"
-              }}
-              onChange={(e) =>
-                setAggregates({
-                  ...aggregates,
-                  [fullName]: e.target.value || null
-                })
-              }
-            >
-              <MenuItem value="">No Aggregate</MenuItem>
-              <MenuItem value="SUM">SUM</MenuItem>
-              <MenuItem value="AVG">AVG</MenuItem>
-              <MenuItem value="COUNT">COUNT</MenuItem>
-              <MenuItem value="MAX">MAX</MenuItem>
-              <MenuItem value="MIN">MIN</MenuItem>
-            </Select>
-          ) : (
-            <Box height={40} />  // placeholder keeps height equal
-          )}
-        </Box>
-      );
-    })}
-</Box>
-    </Box>
-  );
-};
-
-useEffect(() => {
-  if (inputMode === "manual") {
-    const text = "Ask something . . .";
-    let index = 0;
-
-    const interval = setInterval(() => {
-      setPlaceholderText(text.slice(0, index));
-      index++;
-      if (index > text.length) clearInterval(interval);
-    }, 60);
-
-    return () => clearInterval(interval);
-  }
-}, [inputMode]);
-
-
-
-const handleSubmit = async () => {
-  console.log("handleSubmit");
-  setLoading(true); // add a loading state
-  
-  try {
-    const response = await fetch("http://localhost:8282/get-react-code-using-ai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        schemaName: selectedSchema,
-        query: generatedQuery,
-        textQue: formValue,
-        dbJsonData: queryResult
-      })
+    autoTable(doc, {
+      head: [columns],
+      body: rows,
+      styles: {
+        fontSize: 8
+      },
+      headStyles: {
+        fillColor: [25, 118, 210]
+      }
     });
 
-    const result = await response.json();
-    console.log("result:", result);          // ← check what you're getting
-    console.log("reactCode:", result.reactCode); // ← confirm key name
+    doc.save("query_result.pdf");
+  };
 
-    if (result.reactCode) {
-      // 1. Set localStorage FIRST
-      localStorage.setItem("generatedReactCode", result.reactCode);
-      localStorage.setItem("generatedMeta", JSON.stringify({
-        query: generatedQuery,
-        schema: selectedSchema,
-        question: formValue,
-        generatedAt: new Date().toISOString()
-      }));
+  const downloadExcel = () => {
+    if (queryResult.length === 0) return;
 
-      // 2. Confirm it was saved
-      const saved = localStorage.getItem("generatedReactCode");
-      console.log("saved to localStorage:", !!saved);
+    const worksheet = XLSX.utils.json_to_sheet(queryResult);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Results");
 
-      // 3. THEN open new tab
-      const newTab = window.open("/custom-response", "_blank");
-      
-      // 4. If browser blocked popup, fallback to same tab navigate
-      if (!newTab) {
-        console.warn("Popup blocked! Navigating in same tab...");
-        window.location.href = "/custom-response";
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array"
+    });
+
+    const data = new Blob([excelBuffer], {
+      type:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8"
+    });
+
+    saveAs(data, "query_result.xlsx");
+  };
+
+  const selectedTableData = schemaData?.tables?.find(
+    (table) => table.name === selectedTable
+  );
+
+  const columns = selectedTableData?.columns || [];
+  const renderTableColumns = (tableName) => {
+    const tableObj = schemaData?.tables?.find(
+      (t) => t.name === tableName
+    );
+
+    if (!tableObj?.columns) return null;
+
+    return (
+      <Box mb={4}>
+        {/* Table Header */}
+        <Typography
+          mb={3}
+          fontWeight="600"
+          fontSize={16}
+          sx={{
+            px: 2,
+            py: 1,
+            borderRadius: 2,
+            background: "#f4f6f8",
+            color: "#333",
+            display: "inline-block"
+          }}
+        >
+          {tableName} Columns
+        </Typography>
+
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              md: "1fr 1fr"   // Exactly 2 equal columns
+            },
+            gap: 3,
+            maxWidth: 900,
+            margin: "0 auto",
+            alignItems: "stretch"
+          }}
+        >
+          {tableObj.columns
+            .filter((colObj) =>
+              colObj.name.toLowerCase().includes(columnSearch.toLowerCase())
+            )
+            .map((colObj) => {
+              const fullName = `${tableName}.${colObj.name}`;
+              const isSelected = selectedColumns.includes(fullName);
+
+              return (
+                <Box
+                  key={fullName}
+                  sx={{
+                    width: 150,
+                    height: "auto",              // FIXED HEIGHT (important)
+                    p: 1,
+                    borderRadius: 3,
+                    background: "#ffffff",
+                    border: isSelected
+                      ? "1px solid #1976d2"
+                      : "1px solid #e6edf5",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    transition: "all 0.25s ease",
+                    "&:hover": {
+                      boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+                      transform: "translateY(-3px)"
+                    }
+                  }}
+                >
+                  {/* Top Section */}
+                  <Box display="flex" alignItems="flex-start" gap={1}>
+                    <Checkbox
+                      size="small"
+                      checked={isSelected}
+                      onChange={() => handleColumnCheck(fullName)}
+                    />
+
+                    <Box sx={{ overflow: "hidden" }}>
+                      <Typography
+                        fontWeight={600}
+                        fontSize={14}
+                        sx={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical"
+                        }}
+                      >
+                        {colObj.name}
+                      </Typography>
+
+                      <Typography fontSize={11} color="text.secondary">
+                        {colObj.type}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Aggregate Dropdown */}
+                  {isSelected ? (
+                    <Select
+                      fullWidth
+                      size="small"
+                      value={aggregates[fullName] || ""}
+                      sx={{
+                        borderRadius: 2,
+                        background: "#f8fafc"
+                      }}
+                      onChange={(e) =>
+                        setAggregates({
+                          ...aggregates,
+                          [fullName]: e.target.value || null
+                        })
+                      }
+                    >
+                      <MenuItem value="">No Aggregate</MenuItem>
+                      <MenuItem value="SUM">SUM</MenuItem>
+                      <MenuItem value="AVG">AVG</MenuItem>
+                      <MenuItem value="COUNT">COUNT</MenuItem>
+                      <MenuItem value="MAX">MAX</MenuItem>
+                      <MenuItem value="MIN">MIN</MenuItem>
+                    </Select>
+                  ) : (
+                    <Box height={40} />  // placeholder keeps height equal
+                  )}
+                </Box>
+              );
+            })}
+        </Box>
+      </Box>
+    );
+  };
+
+  useEffect(() => {
+    if (inputMode === "manual") {
+      const text = "Ask something . . .";
+      let index = 0;
+
+      const interval = setInterval(() => {
+        setPlaceholderText(text.slice(0, index));
+        index++;
+        if (index > text.length) clearInterval(interval);
+      }, 60);
+
+      return () => clearInterval(interval);
+    }
+  }, [inputMode]);
+
+
+
+  const handleSubmit = async () => {
+    console.log("handleSubmit");
+    if (!formValue.trim()) {
+      setPromptErrorMsg("Please enter details");
+      return;
+    }
+  setPromptErrorMsg("");
+    localStorage.removeItem("generatedReactCode");
+    localStorage.removeItem("generatedMeta");
+    
+
+    try {
+        setAiPromptLoading(true);
+      const response = await fetch("http://localhost:8282/get-react-code-using-ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schemaName: selectedSchema,
+          query: generatedQuery,
+          textQue: formValue,
+          dbJsonData: queryResult
+        })
+      });
+
+      const result = await response.json();
+      console.log("result:", result);          // ← check what you're getting
+      console.log("reactCode:", result.reactCode); // ← confirm key name
+
+      if (result.reactCode) {
+        // 1. Set localStorage FIRST
+        localStorage.setItem("generatedReactCode", result.reactCode);
+        localStorage.setItem("generatedMeta", JSON.stringify({
+          query: generatedQuery,
+          schema: selectedSchema,
+          question: formValue,
+          generatedAt: new Date().toISOString()
+        }));
+
+        // 2. Confirm it was saved
+        const saved = localStorage.getItem("generatedReactCode");
+        console.log("saved to localStorage:", !!saved);
+
+        const newTab = window.open("/custom-response", "_blank");
+
+        // 4. If browser blocked popup, fallback to same tab navigate
+        if (!newTab) {
+          console.warn("Popup blocked! Navigating in same tab...");
+          window.location.href = "/custom-response";
+        }
+
+        setOpenDialog(false);
+      } else {
+        console.error("reactCode missing in response. Keys:", Object.keys(result));
       }
 
-      setOpenDialog(false);
+    } catch (error) {
+      console.error("Error:", error);
+      setPromptErrorMsg("Unable to generate AI insights. Please try again.");
+    } finally {
+      setAiPromptLoading(false);
+      
+    }
+  };
+
+//   const handleAISuggestionClick = async (suggestion) => {
+//   console.log("AI Suggestion Clicked:", suggestion);
+
+//   if (!selectedSchema) {
+//     setErrorMsg("Please select schema.");
+//     return;
+//   }
+
+// // Open new tab AFTER data is ready
+//     const newTab = window.open("/ai-response", "_blank");
+
+//     if (!newTab) {
+//       window.location.href = "/ai-response";
+//     }
+
+//   try {
+//     setAiPromptLoading(true);
+
+//     const res = await fetch(
+//       "http://localhost:8282/get-db-level-data-by-textQue",
+//       {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({
+//           schemaName: selectedSchema,
+//           query: "",
+//           textQue: suggestion.title,   // ✅ pass suggestion as question
+//           dbJsonData: schemaData || {}
+//         })
+//       }
+//     );
+
+//     const data = await res.json();
+
+//     console.log("Suggestion Response:", data);
+
+//     const rows = data?.data?.rows || [];
+//     const cleanSql = (data?.sql || "")
+//       .replace(/```sql|```/g, "")
+//       .trim();
+
+//     // Save generated SQL if needed
+//     setGeneratedQuery(cleanSql);
+
+//     let processedData = [...rows];
+
+//     // Sorting
+//     if (suggestion.sortBy) {
+//       processedData = processedData.sort((a, b) =>
+//         suggestion.order === "asc"
+//           ? a[suggestion.sortBy] - b[suggestion.sortBy]
+//           : b[suggestion.sortBy] - a[suggestion.sortBy]
+//       );
+//     }
+
+//     // Limit
+//     if (suggestion.limit) {
+//       processedData = processedData.slice(0, suggestion.limit);
+//     }
+// console.log("processedData:", processedData);
+//     // Save structured config properly
+//     localStorage.setItem(
+//       "aiConfig",
+//       JSON.stringify({ suggestions: [suggestion] })
+//     );
+
+//     localStorage.setItem(
+//       "aiChartData",
+//       JSON.stringify(processedData)
+//     );
+
+    
+
+//   } catch (err) {
+//     console.error("Error:", err);
+//   } finally {
+//     setAiPromptLoading(false);
+//     setOpenDialog(false);
+//   }
+// };
+
+// const handleAISuggestionClick = async (suggestion) => {
+//   console.log("AI Suggestion Clicked:", suggestion);
+
+//   if (!selectedSchema) {
+//     setErrorMsg("Please select schema.");
+//     return;
+//   }
+
+//   // ✅ 1. Open blank tab immediately (sync)
+//   const newTab = window.open("", "_blank");
+
+//   try {
+//     setAiPromptLoading(true);
+
+//     const res = await fetch(
+//       "http://localhost:8282/get-db-level-data-by-textQue",
+//       {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({
+//           schemaName: selectedSchema,
+//           query: "",
+//           textQue: suggestion.title,
+//           dbJsonData: schemaData || {}
+//         })
+//       }
+//     );
+
+//     const data = await res.json();
+//     const rows = data?.data?.rows || [];
+
+//     let processedData = [...rows];
+
+//     if (suggestion.sortBy) {
+//       processedData = processedData.sort((a, b) =>
+//         suggestion.order === "asc"
+//           ? a[suggestion.sortBy] - b[suggestion.sortBy]
+//           : b[suggestion.sortBy] - a[suggestion.sortBy]
+//       );
+//     }
+
+//     if (suggestion.limit) {
+//       processedData = processedData.slice(0, suggestion.limit);
+//     }
+
+//     // ✅ Save new data
+//     localStorage.setItem(
+//       "aiConfig",
+//       JSON.stringify({ suggestions: [suggestion] })
+//     );
+
+//     localStorage.setItem(
+//       "aiChartData",
+//       JSON.stringify(processedData)
+//     );
+
+//     // ✅ Now redirect that already opened tab
+//     if (newTab) {
+//       newTab.location.href = "/ai-response";
+//     }
+
+//   } catch (err) {
+//     console.error("Error:", err);
+
+//     if (newTab) newTab.close(); // close empty tab on error
+//   } finally {
+//     setAiPromptLoading(false);
+//     setOpenDialog(false);
+//   }
+// };
+
+// const handleAISuggestionClick = async (suggestion) => {
+//   if (!selectedSchema) {
+//     setErrorMsg("Please select schema.");
+//     return;
+//   }
+
+//   // ✅ Open tab immediately (allowed by browser)
+//   const newTab = window.open("/ai-response", "_blank");
+
+//   try {
+//     setAiPromptLoading(true);
+
+//     const res = await fetch(
+//       "http://localhost:8282/get-db-level-data-by-textQue",
+//       {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({
+//           schemaName: selectedSchema,
+//           query: "",
+//           textQue: suggestion.title,
+//           dbJsonData: schemaData || {}
+//         })
+//       }
+//     );
+
+//     const result = await res.json();
+//     const rows = result?.data?.rows || [];
+
+//     let processedData = [...rows];
+
+//     if (suggestion.limit) {
+//       processedData = processedData.slice(0, suggestion.limit);
+//     }
+
+//     // ✅ Send data to new tab
+//     newTab.postMessage(
+//       {
+//         config: { suggestions: [suggestion] },
+//         data: processedData
+//       },
+//       window.location.origin
+//     );
+
+//   } catch (err) {
+//     console.error(err);
+//     newTab?.postMessage({ error: true }, window.location.origin);
+//   } finally {
+//     setAiPromptLoading(false);
+//   }
+// };
+
+// const handleAISuggestionClick = (suggestion) => {
+//   if (!suggestion || Object.keys(suggestion).length === 0) {
+//     console.warn("No suggestion to process");
+//     return;
+//   }
+// console.log("suggestion :",suggestion);
+
+//   // Open new tab immediately
+//   const newTab = window.open("/ai-response", "_blank");
+
+//   // Check if tab opened
+//   if (!newTab) {
+//     console.error("Unable to open new tab. Popup blocked?");
+//     return;
+//   }
+
+//   try {
+//     // Since we are not calling backend, just send suggestion itself
+//     newTab.postMessage(
+//       {
+//         configs: suggestion.suggestions ? suggestion.suggestions : [suggestion],
+//         error: false
+//       },
+//       window.location.origin
+//     );
+//   } catch (err) {
+//     console.error("Error sending suggestion to new tab:", err);
+//     newTab.postMessage({ error: true }, window.location.origin);
+//   }
+// };
+
+
+const handleAISuggestionClick = (suggestion) => {
+  if (!suggestion || Object.keys(suggestion).length === 0) {
+    console.warn("No suggestion to process");
+    return;
+  }
+
+  const newTab = window.open("/ai-response", "_blank");
+
+  if (!newTab) {
+    console.error("Popup blocked");
+    return;
+  }
+
+  // ✅ Wait until new tab loads
+  const sendMessage = () => {
+    newTab.postMessage(
+      {
+        configs: suggestion.suggestions
+          ? suggestion.suggestions
+          : [suggestion],
+        error: false
+      },
+      window.location.origin
+    );
+  };
+
+  // Important: wait for load
+  newTab.onload = sendMessage;
+
+  // Fallback safety (sometimes onload not reliable)
+  setTimeout(sendMessage, 500);
+};
+
+const fetchAiSuggestions = async () => {
+  try {
+    localStorage.removeItem("aiConfig");
+    localStorage.removeItem("aiChartData");
+    setAiPromptLoading(true);
+    setPromptErrorMsg("");
+
+    const response = await fetch("http://localhost:8282/get-ai-suggestions", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+  schemaName: selectedSchema || "",
+  query: generatedQuery || "",
+  textQue: "",
+  dbJsonData: queryResult || []
+})
+});
+
+    const result = await response.json();
+
+    if (result.suggestions) {
+      setAiSuggestions(result.suggestions);
     } else {
-      console.error("reactCode missing in response. Keys:", Object.keys(result));
+      setPromptErrorMsg("No suggestions received.");
     }
 
   } catch (error) {
-    console.error("Error:", error);
+    setPromptErrorMsg("Failed to fetch AI suggestions.");
   } finally {
-    setLoading(false);
+    setAiPromptLoading(false);
   }
 };
   /* ================= UI ================= */
 
   return (
-  <Box
-  sx={{
-    height: "100vh",  
-     pb: "100px",
-    width: "100%",
-    display: "flex",
-    alignItems: "stretch",
-    background: "linear-gradient(135deg, #eef2f3, #d9e4f5)",
-    boxSizing: "border-box"
-  }}
->
-
-    {/* LEFT PANEL 30% */}
     <Box
       sx={{
-        width: "35%",
-        minHeight: "100vh",
-        p: 2,
-         overflowY: "auto"
+        height: "100vh",
+        pb: "100px",
+        width: "100%",
+        display: "flex",
+        alignItems: "stretch",
+        background: "linear-gradient(135deg, #eef2f3, #d9e4f5)",
+        boxSizing: "border-box"
       }}
     >
-     <Paper
-  elevation={0}
-  sx={{
-    p: 3,
-    borderRadius: 4,
-    backdropFilter: "blur(10px)",
-    background: "rgba(255,255,255,0.75)",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
-    border: "1px solid rgba(255,255,255,0.3)"
-  }}
->
 
-        <Typography
-  variant="h5"
-  fontWeight="bold"
-  sx={{
-    mb: 2,
-    background: "linear-gradient(90deg, #1976d2, #42a5f5)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent"
-  }}
->
-  Dynamic Data Explorer
-</Typography>
-
-        {/* Schema */}
-        <FormControl fullWidth>
-          <InputLabel id="schema-label">Schema</InputLabel>
-          <Select
-          label="Schema"
-        labelId="schema-label"
-          sx={{
-      borderRadius: 3,
-      backgroundColor: "#f9fafc",
-      "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: "#d0d7e2"
-      },
-      "&:hover .MuiOutlinedInput-notchedOutline": {
-        borderColor: "#1976d2"
-      },
-      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-        borderColor: "#1976d2"
-      }
-    }}
-    MenuProps={{
-    PaperProps: {
-      sx: {
-        borderRadius: 3,
-        mt: 1,
-        boxShadow: "0 10px 30px rgba(0,0,0,0.15)"
-      }
-    }
-  }}
-
-  value={selectedSchema}
-  onChange={(e) => {
-    const schemaName = e.target.value;
-    setSelectedSchema(schemaName);
-    setSelectedTable("");
-
-    fetch(`http://localhost:8282/get-schema-by-schemaName?schemaName=${schemaName}`)
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Schema Data:", data);
-        setSchemaData(data);
-      })
-      .catch((err) => {
-        console.error("Error fetching schema details:", err);
-      });
-  }}
->
-            {schemas.map((s) => (
-              <MenuItem key={s} value={s}
-               sx={{
-    borderRadius: 2,
-    mx: 1,
-    my: 0.5,
-    "&:hover": {
-      backgroundColor: "#e3f2fd"
-    },
-    "&.Mui-selected": {
-      backgroundColor: "#bbdefb !important",
-      fontWeight: 600
-    }
-  }}
-              >{s}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {/* INPUT MODE SELECTION */}
-<Box mb={2}>
-  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
-    
-  </Typography>
-
-  <RadioGroup
-    row
-    value={inputMode}
-    onChange={(e) => setInputMode(e.target.value)}
-  >
-    <FormControlLabel
-      value="query"
-      control={<Radio />}
-      label="Build Query"
-    />
-
-    <FormControlLabel
-      value="manual"
-      control={<Radio />}
-      label="Ask AI"
-    />
-  </RadioGroup>
-</Box>
-
-<Collapse in={inputMode === "manual"}>
-  <Box mt={1}
-  sx={{
-      p: 3,
-      borderRadius: 3,
-      background: "linear-gradient(145deg, #f9fafc, #eef2f7)",
-      boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
-      position: "relative",
-      overflow: "hidden"
-    }}>
-    <TextField
-      label="Enter Your Question"
-      fullWidth
-      multiline
-      minRows={3}
-      placeholder={placeholderText}
-      value={manualQuestion}
-      onChange={(e) => setManualQuestion(e.target.value)}
-      sx={{
-    "& .MuiOutlinedInput-root": {
-      borderRadius: 3,
-      transition: "all 0.4s ease",
-      "& fieldset": {
-        borderColor: "#1976d2",
-      },
-      "&:hover fieldset": {
-        borderColor: "#1565c0",
-      },
-      "&.Mui-focused fieldset": {
-        borderWidth: "2px",
-        borderColor: "#1976d2",
-        boxShadow: "0 0 12px rgba(25,118,210,0.4)"
-      }
-    }
-  }}
-    />
-    {errorMsg && (
-  <Typography color="error" sx={{ mt: 1 }}>
-    {errorMsg}
-  </Typography>
-)}
-    <Box mt={2} textAlign="right">
-      <Button
-         variant="contained"
-           sx={{
-    borderRadius: 3,
-    textTransform: "none",
-    fontWeight: 600,
-    boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
-  }}
-      onClick={async () => {
-  if (!selectedSchema) {
-  setErrorMsg("Please select schema.");
-  return;
-}
-
-if (!manualQuestion.trim()) {
-  setErrorMsg("Please enter your question.");
-  return;
-}
-
-setErrorMsg(""); // clear if valid
-setQueryResult([]); 
-  try {
-    setAiLoading(true);
-    const res = await fetch("http://localhost:8282/get-db-level-data-by-textQue", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        schemaName: selectedSchema,
-        query: "",
-        textQue: manualQuestion,
-        dbJsonData: schemaData || {}
-      })
-    });
-
-    const data = await res.json();
-
-    console.log("Manual Question Response:", data);
-
-    const rows = data?.data?.rows || [];
-    const cleanSql = (data?.sql || "")
-      .replace(/```sql|```/g, "")
-      .trim();
-
-    setGeneratedQuery(cleanSql);
-    setQueryResult(rows);
-
-  } catch (err) {
-    console.error("Error:", err);
-  }
-  finally {
-    setAiLoading(false); // ✅ stop loading
-  }
-}}
-      >
-        View
-      </Button>
-    </Box>
-  </Box>
-  </Collapse>
-  
-<Collapse in={inputMode === "query"}>
-        {/* Table */}
-        {selectedSchema && schemaData?.tables && (
-  <FormControl fullWidth margin="normal">
-    <InputLabel id="table-select">Table</InputLabel>
-    <Select
-    label="Table"
-    id="table-select"
-     sx={{
-      borderRadius: 3,
-      backgroundColor: "#f9fafc",
-      "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: "#d0d7e2"
-      },
-      "&:hover .MuiOutlinedInput-notchedOutline": {
-        borderColor: "#1976d2"
-      },
-      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-        borderColor: "#1976d2"
-      }
-    }}
-     MenuProps={{
-    PaperProps: {
-      sx: {
-        borderRadius: 3,
-        mt: 1,
-        boxShadow: "0 10px 30px rgba(0,0,0,0.15)"
-      }
-    }
-  }}
-      value={selectedTable}
-      onChange={(e) => setSelectedTable(e.target.value)}
-    >
-      {schemaData.tables.map((table) => (
-        <MenuItem key={table.name} value={table.name}
+      {/* LEFT PANEL 30% */}
+      <Box
         sx={{
-    borderRadius: 2,
-    mx: 1,
-    my: 0.5,
-    "&:hover": {
-      backgroundColor: "#e3f2fd"
-    },
-    "&.Mui-selected": {
-      backgroundColor: "#bbdefb !important",
-      fontWeight: 600
-    }
-  }}
+          width: "35%",
+          minHeight: "100vh",
+          p: 2,
+          overflowY: "auto"
+        }}
+      >
+        <Paper
+          elevation={0}
+          sx={{
+            p: 3,
+            borderRadius: 4,
+            backdropFilter: "blur(10px)",
+            background: "rgba(255,255,255,0.75)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
+            border: "1px solid rgba(255,255,255,0.3)"
+          }}
         >
-          {table.name}
-        </MenuItem>
-      ))}
-    </Select>
-  </FormControl>
-)}
 
-{/* Columns Section */}
-{selectedTable && (
-  <>
-    {/* <Typography
+          <Typography
+            variant="h5"
+            fontWeight="bold"
+            sx={{
+              mb: 2,
+              background: "linear-gradient(90deg, #1976d2, #42a5f5)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent"
+            }}
+          >
+            Dynamic Data Explorer
+          </Typography>
+
+          {/* Schema */}
+          <FormControl fullWidth>
+            <InputLabel id="schema-label">Schema</InputLabel>
+            <Select
+              label="Schema"
+              labelId="schema-label"
+              sx={{
+                borderRadius: 3,
+                backgroundColor: "#f9fafc",
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#d0d7e2"
+                },
+                "&:hover .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#1976d2"
+                },
+                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#1976d2"
+                }
+              }}
+              MenuProps={{
+                PaperProps: {
+                  sx: {
+                    borderRadius: 3,
+                    mt: 1,
+                    boxShadow: "0 10px 30px rgba(0,0,0,0.15)"
+                  }
+                }
+              }}
+
+              value={selectedSchema}
+              onChange={(e) => {
+                const schemaName = e.target.value;
+                setSelectedSchema(schemaName);
+                setSelectedTable("");
+
+                fetch(`http://localhost:8282/get-schema-by-schemaName?schemaName=${schemaName}`)
+                  .then((res) => res.json())
+                  .then((data) => {
+                    console.log("Schema Data:", data);
+                    setSchemaData(data);
+                  })
+                  .catch((err) => {
+                    console.error("Error fetching schema details:", err);
+                  });
+              }}
+            >
+              {schemas.map((s) => (
+                <MenuItem key={s} value={s}
+                  sx={{
+                    borderRadius: 2,
+                    mx: 1,
+                    my: 0.5,
+                    "&:hover": {
+                      backgroundColor: "#e3f2fd"
+                    },
+                    "&.Mui-selected": {
+                      backgroundColor: "#bbdefb !important",
+                      fontWeight: 600
+                    }
+                  }}
+                >{s}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* INPUT MODE SELECTION */}
+          <Box mb={2}>
+            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+
+            </Typography>
+
+            <RadioGroup
+              row
+              value={inputMode}
+              onChange={(e) => setInputMode(e.target.value)}
+            >
+              <FormControlLabel
+                value="query"
+                control={<Radio />}
+                label="Build Query"
+              />
+
+              <FormControlLabel
+                value="manual"
+                control={<Radio />}
+                label="Ask AI"
+              />
+            </RadioGroup>
+          </Box>
+
+          <Collapse in={inputMode === "manual"}>
+            <Box mt={1}
+              sx={{
+                p: 3,
+                borderRadius: 3,
+                background: "linear-gradient(145deg, #f9fafc, #eef2f7)",
+                boxShadow: "0 8px 25px rgba(0,0,0,0.08)",
+                position: "relative",
+                overflow: "hidden"
+              }}>
+              <TextField
+                label="Enter Your Question"
+                fullWidth
+                multiline
+                minRows={3}
+                placeholder={placeholderText}
+                value={manualQuestion}
+                onChange={(e) => setManualQuestion(e.target.value)}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 3,
+                    transition: "all 0.4s ease",
+                    "& fieldset": {
+                      borderColor: "#1976d2",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: "#1565c0",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderWidth: "2px",
+                      borderColor: "#1976d2",
+                      boxShadow: "0 0 12px rgba(25,118,210,0.4)"
+                    }
+                  }
+                }}
+              />
+              {errorMsg && (
+                <Typography color="error" sx={{ mt: 1 }}>
+                  {errorMsg}
+                </Typography>
+              )}
+              <Box mt={2} textAlign="right">
+                <Button
+                  variant="contained"
+                  sx={{
+                    borderRadius: 3,
+                    textTransform: "none",
+                    fontWeight: 600,
+                    boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
+                  }}
+                  onClick={async () => {
+                    if (!selectedSchema) {
+                      setErrorMsg("Please select schema.");
+                      return;
+                    }
+
+                    if (!manualQuestion.trim()) {
+                      setErrorMsg("Please enter your question.");
+                      return;
+                    }
+
+                    setErrorMsg(""); // clear if valid
+                    setQueryResult([]);
+                    try {
+                      setAiLoading(true);
+                      const res = await fetch("http://localhost:8282/get-db-level-data-by-textQue", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          schemaName: selectedSchema,
+                          query: "",
+                          textQue: manualQuestion,
+                          dbJsonData: schemaData || {}
+                        })
+                      });
+
+                      const data = await res.json();
+
+                      console.log("Manual Question Response:", data);
+
+                      const rows = data?.data?.rows || [];
+                      const cleanSql = (data?.sql || "")
+                        .replace(/```sql|```/g, "")
+                        .trim();
+
+                      setGeneratedQuery(cleanSql);
+                      setQueryResult(rows);
+
+                    } catch (err) {
+                      console.error("Error:", err);
+                    }
+                    finally {
+                      setAiLoading(false); // ✅ stop loading
+                    }
+                  }}
+                >
+                  View
+                </Button>
+              </Box>
+            </Box>
+          </Collapse>
+
+          <Collapse in={inputMode === "query"}>
+            {/* Table */}
+            {selectedSchema && schemaData?.tables && (
+              <FormControl fullWidth margin="normal">
+                <InputLabel id="table-select">Table</InputLabel>
+                <Select
+                  label="Table"
+                  id="table-select"
+                  sx={{
+                    borderRadius: 3,
+                    backgroundColor: "#f9fafc",
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#d0d7e2"
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#1976d2"
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "#1976d2"
+                    }
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        borderRadius: 3,
+                        mt: 1,
+                        boxShadow: "0 10px 30px rgba(0,0,0,0.15)"
+                      }
+                    }
+                  }}
+                  value={selectedTable}
+                  onChange={(e) => setSelectedTable(e.target.value)}
+                >
+                  {schemaData.tables.map((table) => (
+                    <MenuItem key={table.name} value={table.name}
+                      sx={{
+                        borderRadius: 2,
+                        mx: 1,
+                        my: 0.5,
+                        "&:hover": {
+                          backgroundColor: "#e3f2fd"
+                        },
+                        "&.Mui-selected": {
+                          backgroundColor: "#bbdefb !important",
+                          fontWeight: 600
+                        }
+                      }}
+                    >
+                      {table.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+
+            {/* Columns Section */}
+            {selectedTable && (
+              <>
+                {/* <Typography
       mt={3}
       fontWeight="bold"
       fontSize={18}
@@ -883,824 +1199,828 @@ setQueryResult([]);
     Select Columns
     </Typography> */}
 
-    <Box
-      sx={{
-        maxHeight: 400,
-        overflowY: "auto",
-        borderRadius: 3,
-        p: 3,
-        mt: 2,
-        background: "linear-gradient(145deg, #ffffff, #f4f6f8)",
-        boxShadow: "0 6px 20px rgba(0,0,0,0.08)"
-      }}
-    >
- {/* ONE Global Search Box */}
-    <Box mt={2} mb={3}>
-      <TextField
-        fullWidth
-        size="small"
-        placeholder="Search columns..."
-        value={columnSearch}
-        onChange={(e) => setColumnSearch(e.target.value)}
+                <Box
+                  sx={{
+                    maxHeight: 400,
+                    overflowY: "auto",
+                    borderRadius: 3,
+                    p: 3,
+                    mt: 2,
+                    background: "linear-gradient(145deg, #ffffff, #f4f6f8)",
+                    boxShadow: "0 6px 20px rgba(0,0,0,0.08)"
+                  }}
+                >
+                  {/* ONE Global Search Box */}
+                  <Box mt={2} mb={3}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="Search columns..."
+                      value={columnSearch}
+                      onChange={(e) => setColumnSearch(e.target.value)}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: 3,
+                          backgroundColor: "#f9fafc"
+                        }
+                      }}
+                    />
+                  </Box>
+
+                  {renderTableColumns(selectedTable)}
+                  {joinTable && renderTableColumns(joinTable)}
+                </Box>
+              </>
+            )}
+
+
+            <Accordion
+              defaultExpanded={false}   // 🔥 collapsed by default
+              sx={{
+                mt: 4,
+                borderRadius: 3,
+                boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+                "&:before": { display: "none" } // removes top line
+              }}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                sx={{
+                  borderRadius: 3,
+                  background: "#f4f6f8",
+                  fontWeight: 600
+                }}
+              >
+                <Typography fontWeight="bold">
+                  JOIN
+                </Typography>
+              </AccordionSummary>
+
+              <AccordionDetails>
+                <Box display="flex" flexDirection="column" gap={3} sx={{ p: 2 }}>
+
+                  {/* Your existing JOIN fields go here */}
+
+                  {/* Join Table */}
+                  {columns.length > 0 && (
+                    <>
+                      <TextField
+                        select
+                        label="Join Table"
+                        value={joinTable}
+                        onChange={(e) => setJoinTable(e.target.value)}
+                        fullWidth
+                        size="small"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: 3,
+                            backgroundColor: "#f9fafc"
+                          }
+                        }}
+                      >
+                        {schemaData?.tables
+                          ?.filter((t) => t.name !== selectedTable)
+                          .map((t) => (
+                            <MenuItem key={t.name} value={t.name}
+                              sx={menuItemStyle}>
+                              {t.name}
+                            </MenuItem>
+                          ))}
+                      </TextField>
+
+                      {/* Join Type */}
+                      <TextField
+                        select
+                        label="Join Type"
+                        value={joinType}
+                        onChange={(e) => setJoinType(e.target.value)}
+                        fullWidth
+                        size="small"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: 3,
+                            backgroundColor: "#f9fafc"
+                          }
+                        }}
+                      >
+                        <MenuItem value="INNER JOIN" sx={menuItemStyle}>INNER JOIN</MenuItem>
+                        <MenuItem value="LEFT JOIN" sx={menuItemStyle}>LEFT JOIN</MenuItem>
+                        <MenuItem value="RIGHT JOIN" sx={menuItemStyle}>RIGHT JOIN</MenuItem>
+                        <MenuItem value="FULL JOIN" sx={menuItemStyle}>FULL JOIN</MenuItem>
+                      </TextField>
+
+                      {/* Join Condition */}
+                      {joinTable && (
+                        <TextField
+                          select
+                          label="Join Condition"
+                          value={useCustomJoin ? "OTHER" : joinCondition}
+                          onChange={(e) => {
+                            if (e.target.value === "OTHER") {
+                              setUseCustomJoin(true);
+                              setJoinCondition("");
+                            } else {
+                              setUseCustomJoin(false);
+                              setJoinCondition(e.target.value);
+                            }
+                          }}
+                          fullWidth
+                          size="small"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: 3,
+                              backgroundColor: "#f9fafc"
+                            }
+                          }}
+                        >
+                          {autoJoinConditions.map((cond, index) => (
+                            <MenuItem key={index} value={cond}
+                              sx={menuItemStyle}>
+                              {cond}
+                            </MenuItem>
+                          ))}
+
+                          <MenuItem value="OTHER">Other (Custom)</MenuItem>
+                        </TextField>
+                      )}
+
+                      {/* Custom Join Field */}
+                      {useCustomJoin && (
+                        <TextField
+                          label="Custom Join Condition"
+                          placeholder="table1.id = table2.user_id"
+                          value={joinCondition}
+                          onChange={(e) => setJoinCondition(e.target.value)}
+                          fullWidth
+                          size="small"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: 3,
+                              backgroundColor: "#f9fafc"
+                            }
+                          }}
+                        />
+                      )}
+                    </>
+                  )}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+
+            {/* WHERE */}
+            <Accordion
+              defaultExpanded={false}   // 🔥 collapsed by default
+              sx={{
+                mt: 4,
+                borderRadius: 3,
+                boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+                "&:before": { display: "none" } // removes top line
+              }}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                sx={{
+                  borderRadius: 3,
+                  background: "#f4f6f8",
+                  fontWeight: 600
+                }}
+              >
+                <Typography fontWeight="bold">
+                  WHERE
+                </Typography>
+              </AccordionSummary>
+
+              <AccordionDetails>
+                <Box display="flex" flexDirection="column" gap={2}>
+                  {/* WHERE */}
+                  {columns.length > 0 && (
+                    <>
+                      {whereConditions.map((cond, i) => (
+                        <Grid container spacing={1} alignItems="center" mt={1}>
+                          {/* Column */}
+                          <Grid item xs={4}>
+                            <Select
+                              fullWidth
+                              size="small"
+                              value={cond.column}
+                              onChange={(e) => {
+                                const updated = [...whereConditions];
+                                updated[i].column = e.target.value;
+                                setWhereConditions(updated);
+                              }}
+                              sx={modernSelectStyle}
+                              MenuProps={selectMenuProps}
+                            >
+                              {availableColumns.map((col) => (
+                                <MenuItem key={col.value} value={col.value}
+                                  sx={menuItemStyle}>
+                                  {col.label}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </Grid>
+
+                          {/* Operator */}
+                          <Grid item xs={3}>
+                            <Select
+                              fullWidth
+                              size="small"
+                              value={cond.operator}
+                              onChange={(e) => {
+                                const updated = [...whereConditions];
+                                updated[i].operator = e.target.value;
+                                setWhereConditions(updated);
+                              }}
+                              sx={modernSelectStyle}
+                              MenuProps={selectMenuProps}
+                            >
+                              <MenuItem value="=" sx={menuItemStyle}>=</MenuItem>
+                              <MenuItem value="!=" sx={menuItemStyle}>!=</MenuItem>
+                              <MenuItem value=">" sx={menuItemStyle}>{">"}</MenuItem>
+                              <MenuItem value="<" sx={menuItemStyle}>{"<"}</MenuItem>
+                            </Select>
+                          </Grid>
+
+                          {/* Value - fixed width */}
+                          <Grid item>
+                            <TextField
+                              size="small"
+                              value={cond.value}
+                              onChange={(e) => {
+                                const updated = [...whereConditions];
+                                updated[i].value = e.target.value;
+                                setWhereConditions(updated);
+                              }}
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  borderRadius: 3,   // 🔥 Rounded corners
+                                  backgroundColor: "#f9fafc"
+                                },
+                                width: 80
+                              }} // ✅ fixed width so icon doesn't shift
+                            />
+                          </Grid>
+
+                          {/* Delete button */}
+                          <Grid item>
+                            <IconButton
+                              onClick={() =>
+                                removeCondition(setWhereConditions, whereConditions, i)
+                              }
+                              size="small"
+                            >
+                              <DeleteIcon fontSize="small" color="error" />
+                            </IconButton>
+                          </Grid>
+                        </Grid>
+
+                      ))}
+                      <Box display="flex" justifyContent="flex-start" mt={1}>
+                        <Button
+                          size="small"
+                          onClick={() =>
+                            addCondition(setWhereConditions, whereConditions)
+                          }
+                        >
+                          Add WHERE
+                        </Button>
+                      </Box>
+                    </>
+                  )}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+
+            {/* GROUP BY */}
+            <Accordion
+              defaultExpanded={false}   // 🔥 collapsed by default
+              sx={{
+                mt: 4,
+                borderRadius: 3,
+                boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+                "&:before": { display: "none" } // removes top line
+              }}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                sx={{
+                  borderRadius: 3,
+                  background: "#f4f6f8",
+                  fontWeight: 600
+                }}
+              >
+                <Typography fontWeight="bold">
+                  GROUP BY
+                </Typography>
+              </AccordionSummary>
+
+              <AccordionDetails>
+                <Box display="flex" flexDirection="column" gap={2}>
+                  {columns.length > 0 && (
+                    <>
+                      {groupBy.map((col, i) => (
+                        <Grid container spacing={1} key={i} mt={1}>
+                          <Grid item xs={10}>
+                            <Select
+                              fullWidth
+                              size="small"
+                              value={col}
+                              onChange={(e) => {
+                                const updated = [...groupBy];
+                                updated[i] = e.target.value;
+                                setGroupBy(updated);
+                              }}
+                              sx={modernSelectStyle}
+                              MenuProps={selectMenuProps}
+                            >
+                              {availableColumns.map((col) => (
+                                <MenuItem key={col.value} value={col.value}
+                                  sx={menuItemStyle}>
+                                  {col.label}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </Grid>
+
+                          <Grid item>
+                            <IconButton
+                              onClick={() => {
+                                const updated = [...groupBy];
+                                updated.splice(i, 1);
+                                setGroupBy(updated);
+                              }}
+                              size="small"
+                            >
+                              <DeleteIcon fontSize="small" color="error" />
+                            </IconButton>
+                          </Grid>
+                        </Grid>
+                      ))}
+                      <Box display="flex" justifyContent="flex-start" mt={1}>
+                        <Button size="small" onClick={addGroupBy}>
+                          Add GROUP BY
+                        </Button>
+                      </Box>
+                    </>
+                  )}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+
+            <Accordion
+              defaultExpanded={false}   // 🔥 collapsed by default
+              sx={{
+                mt: 4,
+                borderRadius: 3,
+                boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+                "&:before": { display: "none" } // removes top line
+              }}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                sx={{
+                  borderRadius: 3,
+                  background: "#f4f6f8",
+                  fontWeight: 600
+                }}
+              >
+                <Typography fontWeight="bold">
+                  HAVING
+                </Typography>
+              </AccordionSummary>
+
+              <AccordionDetails>
+                <Box display="flex" flexDirection="column" gap={2}>
+                  {/* HAVING */}
+                  {columns.length > 0 && groupBy.length > 0 && hasAggregate && groupBy.some(col => col) && (
+                    <>
+                      {havingConditions.map((cond, i) => (
+                        <Grid container spacing={1} key={i} mt={1}>
+                          <Grid item xs={4}>
+                            <Select
+                              fullWidth
+                              size="small"
+                              value={cond.column}
+                              onChange={(e) => {
+                                const updated = [...havingConditions];
+                                updated[i].column = e.target.value;
+                                setHavingConditions(updated);
+                              }}
+                              sx={modernSelectStyle}
+                              MenuProps={selectMenuProps}
+                            >
+                              {aggregateColumns.map((c) => (
+                                <MenuItem key={c} value={c}
+                                  sx={menuItemStyle}>
+                                  {aggregates[c]}({c})
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </Grid>
+
+                          <Grid item xs={3}>
+                            <Select
+                              fullWidth
+                              size="small"
+                              value={cond.operator}
+                              onChange={(e) => {
+                                const updated = [...havingConditions];
+                                updated[i].operator = e.target.value;
+                                setHavingConditions(updated);
+                              }}
+                              sx={modernSelectStyle}
+                              MenuProps={selectMenuProps}
+                            >
+                              <MenuItem value="=" sx={menuItemStyle}>=</MenuItem>
+                              <MenuItem value="!=" sx={menuItemStyle}>!=</MenuItem>
+                              <MenuItem value=">" sx={menuItemStyle}>{">"}</MenuItem>
+                              <MenuItem value="<" sx={menuItemStyle}>{"<"}</MenuItem>
+                            </Select>
+                          </Grid>
+
+                          <Grid item>
+                            <TextField
+                              size="small"
+                              fullWidth
+                              value={cond.value}
+                              onChange={(e) => {
+                                const updated = [...havingConditions];
+                                updated[i].value = e.target.value;
+                                setHavingConditions(updated);
+                              }}
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  borderRadius: 3,
+                                  backgroundColor: "#f9fafc"
+                                },
+                                width: 80
+                              }}
+                            />
+                          </Grid>
+
+                          <Grid item>
+                            <IconButton
+                              onClick={() =>
+                                removeCondition(setHavingConditions, havingConditions, i)
+                              }
+                              size="small"
+                            >
+                              <DeleteIcon fontSize="small" color="error" />
+                            </IconButton>
+                          </Grid>
+                        </Grid>
+                      ))}
+
+                      <Box display="flex" justifyContent="flex-start" mt={1}>
+                        <Button
+                          size="small"
+                          onClick={() =>
+                            addCondition(setHavingConditions, havingConditions)
+                          }
+                        >
+                          Add HAVING
+                        </Button>
+                      </Box>
+                    </>
+                  )}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+
+            {/* ORDER BY */}
+            <Accordion
+              defaultExpanded={false}   // 🔥 collapsed by default
+              sx={{
+                mt: 4,
+                borderRadius: 3,
+                boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+                "&:before": { display: "none" } // removes top line
+              }}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                sx={{
+                  borderRadius: 3,
+                  background: "#f4f6f8",
+                  fontWeight: 600
+                }}
+              >
+                <Typography fontWeight="bold">
+                  ORDER BY
+                </Typography>
+              </AccordionSummary>
+
+              <AccordionDetails>
+                <Box display="flex" flexDirection="column" gap={2}>
+                  {columns.length > 0 && (
+                    <>
+                      {orderBy.map((o, i) => (
+                        <Grid container spacing={1} key={i} mt={1}>
+                          <Grid item xs={6}>
+                            <Select
+                              fullWidth
+                              size="small"
+                              value={o.column}
+                              onChange={(e) => {
+                                const updated = [...orderBy];
+                                updated[i].column = e.target.value;
+                                setOrderBy(updated);
+                              }}
+                              sx={modernSelectStyle}
+                              MenuProps={selectMenuProps}
+                            >
+                              {availableColumns.map((col) => (
+                                <MenuItem key={col.value} value={col.value}
+                                  sx={menuItemStyle}>
+                                  {col.label}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </Grid>
+
+                          <Grid item xs={4}>
+                            <Select
+                              fullWidth
+                              size="small"
+                              value={o.direction}
+                              onChange={(e) => {
+                                const updated = [...orderBy];
+                                updated[i].direction = e.target.value;
+                                setOrderBy(updated);
+                              }}
+                              sx={modernSelectStyle}
+                              MenuProps={selectMenuProps}
+                            >
+                              <MenuItem value="ASC" sx={menuItemStyle}>ASC</MenuItem>
+                              <MenuItem value="DESC" sx={menuItemStyle}>DESC</MenuItem>
+                            </Select>
+                          </Grid>
+
+                          <Grid item>
+                            <IconButton
+                              onClick={() => {
+                                const updated = [...orderBy];
+                                updated.splice(i, 1);
+                                setOrderBy(updated);
+                              }}
+                              size="small"
+                            >
+                              <DeleteIcon fontSize="small" color="error" />
+                            </IconButton>
+                          </Grid>
+                        </Grid>
+                      ))}
+
+                      <Box display="flex" justifyContent="flex-start" mt={1}>
+                        <Button size="small" onClick={addOrderBy}>
+                          Add ORDER BY
+                        </Button>
+                      </Box>
+                    </>
+                  )}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+
+            {/* LIMIT */}
+            <Accordion
+              defaultExpanded={false}
+              sx={{
+                mt: 4,
+                borderRadius: 3,
+                boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+                "&:before": { display: "none" } // removes top line
+              }}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                sx={{
+                  borderRadius: 3,
+                  background: "#f4f6f8",
+                  fontWeight: 600
+                }}
+              >
+                <Typography fontWeight="bold">
+                  LIMIT
+                </Typography>
+              </AccordionSummary>
+
+              <AccordionDetails>
+                <Box display="flex" flexDirection="column" gap={2}>
+                  <TextField
+                    label="Limit"
+                    type="number"
+                    value={limit}
+                    onChange={(e) => {
+                      const value = Math.max(0, Number(e.target.value));
+                      setLimit(value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "-" || e.key === "e") {
+                        e.preventDefault();
+                      }
+                    }}
+                    inputProps={{ min: 0 }}
+                    fullWidth
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 3,
+                        backgroundColor: "#f9fafc"
+                      }
+                    }}
+                  />
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+
+            {/* ACTION BUTTONS */}
+            <Box mt={2} display="flex" gap={2}>
+              <Button
+                variant="contained"
+                sx={{
+                  borderRadius: 3,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
+                }}
+                onClick={generateQuery}
+              >
+                Generate Query
+              </Button>
+
+              <Button
+                variant="outlined"
+                color="error"
+                sx={{
+                  borderRadius: 3,
+                  textTransform: "none",
+                  fontWeight: 600
+                }}
+                onClick={clearAll}
+              >
+                Clear All
+              </Button>
+            </Box>
+          </Collapse>
+        </Paper>
+      </Box>
+
+      {/* RIGHT PANEL 70% */}
+      <Box
         sx={{
-          "& .MuiOutlinedInput-root": {
-      borderRadius: 3,
-      backgroundColor: "#f9fafc"
-    }
-        }}
-      />
-    </Box>
-
-      {renderTableColumns(selectedTable)}
-      {joinTable && renderTableColumns(joinTable)}
-    </Box>
-  </>
-)}
-
-
-       <Accordion
-  defaultExpanded={false}   // 🔥 collapsed by default
-  sx={{
-    mt: 4,
-    borderRadius: 3,
-    boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
-    "&:before": { display: "none" } // removes top line
-  }}
->
-  <AccordionSummary
-    expandIcon={<ExpandMoreIcon />}
-    sx={{
-      borderRadius: 3,
-      background: "#f4f6f8",
-      fontWeight: 600
-    }}
-  >
-    <Typography fontWeight="bold">
-      JOIN
-    </Typography>
-  </AccordionSummary>
-
-  <AccordionDetails>
-    <Box display="flex" flexDirection="column" gap={3} sx={{p:2}}>
-       
-      {/* Your existing JOIN fields go here */}
-
-      {/* Join Table */}
-      {columns.length > 0 && (
-        <>
-      <TextField
-        select
-        label="Join Table"
-        value={joinTable}
-        onChange={(e) => setJoinTable(e.target.value)}
-        fullWidth
-        size="small"
-        sx={{
-          "& .MuiOutlinedInput-root": {
-            borderRadius: 3,
-            backgroundColor: "#f9fafc"
-          }
+          width: "66%",
+          p: 2,
+          minHeight: "100vh"
         }}
       >
-        {schemaData?.tables
-          ?.filter((t) => t.name !== selectedTable)
-          .map((t) => (
-            <MenuItem key={t.name} value={t.name}
-            sx={menuItemStyle}>
-              {t.name}
-            </MenuItem>
-          ))}
-      </TextField>
-
-      {/* Join Type */}
-      <TextField
-        select
-        label="Join Type"
-        value={joinType}
-        onChange={(e) => setJoinType(e.target.value)}
-        fullWidth
-        size="small"
-        sx={{
-          "& .MuiOutlinedInput-root": {
-            borderRadius: 3,
-            backgroundColor: "#f9fafc"
-          }
-        }}
-      >
-        <MenuItem value="INNER JOIN" sx={menuItemStyle}>INNER JOIN</MenuItem>
-        <MenuItem value="LEFT JOIN" sx={menuItemStyle}>LEFT JOIN</MenuItem>
-        <MenuItem value="RIGHT JOIN" sx={menuItemStyle}>RIGHT JOIN</MenuItem>
-        <MenuItem value="FULL JOIN" sx={menuItemStyle}>FULL JOIN</MenuItem>
-      </TextField>
-
-      {/* Join Condition */}
-      {joinTable && (
-        <TextField
-          select
-          label="Join Condition"
-          value={useCustomJoin ? "OTHER" : joinCondition}
-          onChange={(e) => {
-            if (e.target.value === "OTHER") {
-              setUseCustomJoin(true);
-              setJoinCondition("");
-            } else {
-              setUseCustomJoin(false);
-              setJoinCondition(e.target.value);
-            }
-          }}
-          fullWidth
-          size="small"
+        <Paper
+          elevation={0}
           sx={{
-            "& .MuiOutlinedInput-root": {
-              borderRadius: 3,
-              backgroundColor: "#f9fafc"
-            }
+            p: 3,
+            display: "flex",
+            flexDirection: "column",
+            borderRadius: 4,
+            backdropFilter: "blur(10px)",
+            background: "rgba(255,255,255,0.75)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
+            border: "1px solid rgba(255,255,255,0.3)"
           }}
         >
-          {autoJoinConditions.map((cond, index) => (
-            <MenuItem key={index} value={cond}
-            sx={menuItemStyle}>
-              {cond}
-            </MenuItem>
-          ))}
-
-          <MenuItem value="OTHER">Other (Custom)</MenuItem>
-        </TextField>
-      )}
-
-      {/* Custom Join Field */}
-      {useCustomJoin && (
-        <TextField
-          label="Custom Join Condition"
-          placeholder="table1.id = table2.user_id"
-          value={joinCondition}
-          onChange={(e) => setJoinCondition(e.target.value)}
-          fullWidth
-          size="small"
-          sx={{
-            "& .MuiOutlinedInput-root": {
-              borderRadius: 3,
-              backgroundColor: "#f9fafc"
-            }
-          }}
-        />
-      )}
-      </>
-)}
-    </Box>
-  </AccordionDetails>
-</Accordion>
-
-{/* WHERE */}
- <Accordion
-  defaultExpanded={false}   // 🔥 collapsed by default
-  sx={{
-    mt: 4,
-    borderRadius: 3,
-    boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
-    "&:before": { display: "none" } // removes top line
-  }}
->
-<AccordionSummary
-    expandIcon={<ExpandMoreIcon />}
-    sx={{
-      borderRadius: 3,
-      background: "#f4f6f8",
-      fontWeight: 600
-    }}
-  >
-    <Typography fontWeight="bold">
-      WHERE
-    </Typography>
-  </AccordionSummary>
-
-  <AccordionDetails>
-    <Box display="flex" flexDirection="column" gap={2}>
-        {/* WHERE */}
-        {columns.length > 0 && (
-          <>
-            {whereConditions.map((cond, i) => (
-              <Grid container spacing={1} alignItems="center" mt={1}>
-  {/* Column */}
-  <Grid item xs={4}>
-    <Select
-      fullWidth
-      size="small"
-      value={cond.column}
-      onChange={(e) => {
-        const updated = [...whereConditions];
-        updated[i].column = e.target.value;
-        setWhereConditions(updated);
-      }}
-      sx={modernSelectStyle}
-      MenuProps={selectMenuProps}
-    >
-      {availableColumns.map((col) => (
-  <MenuItem key={col.value} value={col.value}
-  sx={menuItemStyle}>
-    {col.label}
-  </MenuItem>
-))}
-    </Select>
-  </Grid>
-
-  {/* Operator */}
-  <Grid item xs={3}>
-    <Select
-      fullWidth
-      size="small"
-      value={cond.operator}
-      onChange={(e) => {
-        const updated = [...whereConditions];
-        updated[i].operator = e.target.value;
-        setWhereConditions(updated);
-      }}
-      sx={modernSelectStyle}
-      MenuProps={selectMenuProps}
-    >
-      <MenuItem value="=" sx={menuItemStyle}>=</MenuItem>
-      <MenuItem value="!=" sx={menuItemStyle}>!=</MenuItem>
-      <MenuItem value=">" sx={menuItemStyle}>{">"}</MenuItem>
-      <MenuItem value="<" sx={menuItemStyle}>{"<"}</MenuItem>
-    </Select>
-  </Grid>
-
-  {/* Value - fixed width */}
-  <Grid item>
-    <TextField
-      size="small"
-      value={cond.value}
-      onChange={(e) => {
-        const updated = [...whereConditions];
-        updated[i].value = e.target.value;
-        setWhereConditions(updated);
-      }}
-      sx={{ "& .MuiOutlinedInput-root": {
-      borderRadius: 3,   // 🔥 Rounded corners
-      backgroundColor: "#f9fafc"
-    },
-    width: 80 }} // ✅ fixed width so icon doesn't shift
-    />
-  </Grid>
-
-  {/* Delete button */}
-  <Grid item>
-    <IconButton
-      onClick={() =>
-        removeCondition(setWhereConditions, whereConditions, i)
-      }
-      size="small"
-    >
-      <DeleteIcon fontSize="small" color="error" />
-    </IconButton>
-  </Grid>
-</Grid>
-
-            ))}
-<Box display="flex" justifyContent="flex-start" mt={1}>
-            <Button
-              size="small"
-              onClick={() =>
-                addCondition(setWhereConditions, whereConditions)
-              }
-            >
-              Add WHERE
-            </Button>
-            </Box>
-          </>
-        )}
-        </Box>
-</AccordionDetails>
-</Accordion>
-
-        {/* GROUP BY */}
-        <Accordion
-  defaultExpanded={false}   // 🔥 collapsed by default
-  sx={{
-    mt: 4,
-    borderRadius: 3,
-    boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
-    "&:before": { display: "none" } // removes top line
-  }}
->
-<AccordionSummary
-    expandIcon={<ExpandMoreIcon />}
-    sx={{
-      borderRadius: 3,
-      background: "#f4f6f8",
-      fontWeight: 600
-    }}
-  >
-    <Typography fontWeight="bold">
-      GROUP BY
-    </Typography>
-  </AccordionSummary>
-
-  <AccordionDetails>
-    <Box display="flex" flexDirection="column" gap={2}>
-{columns.length > 0 && (
-  <>
-    {groupBy.map((col, i) => (
-      <Grid container spacing={1} key={i} mt={1}>
-        <Grid item xs={10}>
-          <Select
-            fullWidth
-            size="small"
-            value={col}
-            onChange={(e) => {
-              const updated = [...groupBy];
-              updated[i] = e.target.value;
-              setGroupBy(updated);
-            }}
-            sx={modernSelectStyle}
-            MenuProps={selectMenuProps}
-          >
-            {availableColumns.map((col) => (
-  <MenuItem key={col.value} value={col.value}
-  sx={menuItemStyle}>
-    {col.label}
-  </MenuItem>
-))}
-          </Select>
-        </Grid>
-
-        <Grid item>
-          <IconButton
-            onClick={() => {
-              const updated = [...groupBy];
-              updated.splice(i, 1);
-              setGroupBy(updated);
-            }}
-             size="small"
-          >
-            <DeleteIcon fontSize="small" color="error" />
-          </IconButton>
-        </Grid>
-      </Grid>
-    ))}
-<Box display="flex" justifyContent="flex-start" mt={1}>
-    <Button size="small" onClick={addGroupBy}>
-      Add GROUP BY
-    </Button>
-    </Box>
-  </>
-)}
-</Box>
-</AccordionDetails>
-</Accordion>
-
-<Accordion
-  defaultExpanded={false}   // 🔥 collapsed by default
-  sx={{
-    mt: 4,
-    borderRadius: 3,
-    boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
-    "&:before": { display: "none" } // removes top line
-  }}
->
-<AccordionSummary
-    expandIcon={<ExpandMoreIcon />}
-    sx={{
-      borderRadius: 3,
-      background: "#f4f6f8",
-      fontWeight: 600
-    }}
-  >
-    <Typography fontWeight="bold">
-      HAVING
-    </Typography>
-  </AccordionSummary>
-
-  <AccordionDetails>
-    <Box display="flex" flexDirection="column" gap={2}>
-{/* HAVING */}
-{columns.length > 0 && groupBy.length > 0 && hasAggregate && groupBy.some(col => col) && (
-  <>
-    {havingConditions.map((cond, i) => (
-      <Grid container spacing={1} key={i} mt={1}>
-        <Grid item xs={4}>
-          <Select
-            fullWidth
-            size="small"
-            value={cond.column}
-            onChange={(e) => {
-              const updated = [...havingConditions];
-              updated[i].column = e.target.value;
-              setHavingConditions(updated);
-            }}
-            sx={modernSelectStyle}
-            MenuProps={selectMenuProps}
-          >
-            {aggregateColumns.map((c) => (
-  <MenuItem key={c} value={c}
-  sx={menuItemStyle}>
-    {aggregates[c]}({c})
-  </MenuItem>
-))}
-          </Select>
-        </Grid>
-
-        <Grid item xs={3}>
-          <Select
-            fullWidth
-            size="small"
-            value={cond.operator}
-            onChange={(e) => {
-              const updated = [...havingConditions];
-              updated[i].operator = e.target.value;
-              setHavingConditions(updated);
-            }}
-            sx={modernSelectStyle}
-            MenuProps={selectMenuProps}
-          >
-            <MenuItem value="=" sx={menuItemStyle}>=</MenuItem>
-            <MenuItem value="!=" sx={menuItemStyle}>!=</MenuItem>
-            <MenuItem value=">" sx={menuItemStyle}>{">"}</MenuItem>
-            <MenuItem value="<" sx={menuItemStyle}>{"<"}</MenuItem>
-          </Select>
-        </Grid>
-
-        <Grid item>
-          <TextField
-            size="small"
-            fullWidth
-            value={cond.value}
-            onChange={(e) => {
-              const updated = [...havingConditions];
-              updated[i].value = e.target.value;
-              setHavingConditions(updated);
-            }}
-             sx={{ 
-              "& .MuiOutlinedInput-root": {
-      borderRadius: 3,
-      backgroundColor: "#f9fafc"
-    },
-              width: 80 }} 
-          />
-        </Grid>
-
-        <Grid item>
-          <IconButton
-            onClick={() =>
-              removeCondition(setHavingConditions, havingConditions, i)
-            }
-              size="small"
-          >
-            <DeleteIcon fontSize="small" color="error" />
-          </IconButton>
-        </Grid>
-      </Grid>
-    ))}
-
-    <Box display="flex" justifyContent="flex-start" mt={1}>
-  <Button
-    size="small"
-    onClick={() =>
-      addCondition(setHavingConditions, havingConditions)
-    }
-  >
-    Add HAVING
-  </Button>
-</Box>
-  </>
-)}
-</Box>
-</AccordionDetails>
-</Accordion>
-
-{/* ORDER BY */}
-<Accordion
-  defaultExpanded={false}   // 🔥 collapsed by default
-  sx={{
-    mt: 4,
-    borderRadius: 3,
-    boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
-    "&:before": { display: "none" } // removes top line
-  }}
->
-<AccordionSummary
-    expandIcon={<ExpandMoreIcon />}
-    sx={{
-      borderRadius: 3,
-      background: "#f4f6f8",
-      fontWeight: 600
-    }}
-  >
-    <Typography fontWeight="bold">
-      ORDER BY
-    </Typography>
-  </AccordionSummary>
-
-  <AccordionDetails>
-    <Box display="flex" flexDirection="column" gap={2}>
-{columns.length > 0 && (
-  <>
-    {orderBy.map((o, i) => (
-      <Grid container spacing={1} key={i} mt={1}>
-        <Grid item xs={6}>
-          <Select
-            fullWidth
-            size="small"
-            value={o.column}
-            onChange={(e) => {
-              const updated = [...orderBy];
-              updated[i].column = e.target.value;
-              setOrderBy(updated);
-            }}
-            sx={modernSelectStyle}
-      MenuProps={selectMenuProps}
-          >
-            {availableColumns.map((col) => (
-  <MenuItem key={col.value} value={col.value}
-  sx={menuItemStyle}>
-    {col.label}
-  </MenuItem>
-))}
-          </Select>
-        </Grid>
-
-        <Grid item xs={4}>
-          <Select
-            fullWidth
-            size="small"
-            value={o.direction}
-            onChange={(e) => {
-              const updated = [...orderBy];
-              updated[i].direction = e.target.value;
-              setOrderBy(updated);
-            }}
-            sx={modernSelectStyle}
-      MenuProps={selectMenuProps}
-          >
-            <MenuItem value="ASC" sx={menuItemStyle}>ASC</MenuItem>
-            <MenuItem value="DESC" sx={menuItemStyle}>DESC</MenuItem>
-          </Select>
-        </Grid>
-
-        <Grid item>
-          <IconButton
-            onClick={() => {
-              const updated = [...orderBy];
-              updated.splice(i, 1);
-              setOrderBy(updated);
-            }}
-             size="small"
-          >
-            <DeleteIcon fontSize="small" color="error" />
-          </IconButton>
-        </Grid>
-      </Grid>
-    ))}
-
-    <Box display="flex" justifyContent="flex-start" mt={1}>
-  <Button size="small" onClick={addOrderBy}>
-    Add ORDER BY
-  </Button>
-</Box>
-  </>
-)}
-</Box>
-</AccordionDetails>
-</Accordion>
-
-        {/* LIMIT */}
-       <Accordion
-  defaultExpanded={false}   // 🔥 collapsed by default
-  sx={{
-    mt: 4,
-    borderRadius: 3,
-    boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
-    "&:before": { display: "none" } // removes top line
-  }}
->
-<AccordionSummary
-    expandIcon={<ExpandMoreIcon />}
-    sx={{
-      borderRadius: 3,
-      background: "#f4f6f8",
-      fontWeight: 600
-    }}
-  >
-    <Typography fontWeight="bold">
-      LIMIT
-    </Typography>
-  </AccordionSummary>
-
-  <AccordionDetails>
-    <Box display="flex" flexDirection="column" gap={2}>
-        <TextField
-  label="Limit"
-  type="number"
-  value={limit}
-  onChange={(e) => {
-    const value = Math.max(0, Number(e.target.value));
-    setLimit(value);
-  }}
-  onKeyDown={(e) => {
-    if (e.key === "-" || e.key === "e") {
-      e.preventDefault();
-    }
-  }}
-  inputProps={{ min: 0 }}
-  fullWidth
- sx={{ "& .MuiOutlinedInput-root": {
-      borderRadius: 3, 
-      backgroundColor: "#f9fafc"
-    }
-  }}
-/>
-</Box>
-</AccordionDetails>
-</Accordion>
-
-        {/* ACTION BUTTONS */}
-        <Box mt={2} display="flex" gap={2}>
-          <Button
-            variant="contained"
-           sx={{
-    borderRadius: 3,
-    textTransform: "none",
-    fontWeight: 600,
-    boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
-  }}
-            onClick={generateQuery}
-          >
-            Generate Query
-          </Button>
-
-          <Button
-            variant="outlined"
-            color="error"
+          <Typography variant="h6"
+            fontWeight="bold"
             sx={{
-    borderRadius: 3,
-    textTransform: "none",
-    fontWeight: 600
-  }}
-            onClick={clearAll}
+              mb: 2,
+              background: "linear-gradient(90deg, #1976d2, #42a5f5)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent"
+            }}>Generated Query</Typography>
+
+          <Box
+            sx={{
+              borderRadius: 2,
+              overflow: "hidden",
+              border: "1px solid #2d2d2d",
+              background: "#1e1e1e",
+              position: "relative"
+            }}
           >
-            Clear All
-          </Button>
-        </Box>
-</Collapse>
-      </Paper>
-    </Box>
 
-    {/* RIGHT PANEL 70% */}
-    <Box
-      sx={{
-        width: "66%",
-        p: 2,
-        minHeight: "100vh"
-      }}
-    >
-      <Paper
-       elevation={0}
-  sx={{
-    p: 3,
-    display: "flex",
-    flexDirection: "column",
-    borderRadius: 4,
-    backdropFilter: "blur(10px)",
-    background: "rgba(255,255,255,0.75)",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
-    border: "1px solid rgba(255,255,255,0.3)"
-  }}
->
-        <Typography variant="h6"
-  fontWeight="bold"
-  sx={{
-    mb: 2,
-    background: "linear-gradient(90deg, #1976d2, #42a5f5)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent"
-  }}>Generated Query</Typography>
+            {/* Copy Button */}
+            {generatedQuery && (
+              <IconButton
+                onClick={() => {
+                  navigator.clipboard.writeText(generatedQuery);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1500);
+                }}
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  color: copied ? "#4caf50" : "#ffffff",
+                  background: "rgba(255,255,255,0.05)",
+                  "&:hover": {
+                    background: "rgba(255,255,255,0.15)"
+                  }
+                }}
+              >
+                {copied ? <CheckIcon /> : <ContentCopyIcon />}
+              </IconButton>
+            )}
 
-      <Box
-  sx={{
-    borderRadius: 2,
-    overflow: "hidden",
-    border: "1px solid #2d2d2d",
-    background: "#1e1e1e",
-    position: "relative"
-  }}
->
+            <SyntaxHighlighter
+              language="sql"
+              style={okaidia}
+              wrapLongLines={true}
+              customStyle={{
+                margin: 0,
+                padding: "28px",
+                paddingBottom: "70px",   // 👈 important (space for button)
+                minHeight: "200px",
+                maxHeight: "450px",
+                overflowY: "auto",
+                overflowX: "hidden",
+                fontSize: "20px",
+                fontFamily: "Fira Code, monospace",
+                lineHeight: "1.6",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word"
+              }}
+              codeTagProps={{
+                style: {
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word"
+                }
+              }}
+            >
+              {generatedQuery || "-- Your query will appear here"}
+            </SyntaxHighlighter>
 
-  {/* Copy Button */}
-  {generatedQuery && (
-    <IconButton
-      onClick={() => {
-        navigator.clipboard.writeText(generatedQuery);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}
-      sx={{
-        position: "absolute",
-        top: 8,
-        right: 8,
-        color: copied ? "#4caf50" : "#ffffff",
-        background: "rgba(255,255,255,0.05)",
-        "&:hover": {
-          background: "rgba(255,255,255,0.15)"
-        }
-      }}
-    >
-      {copied ? <CheckIcon /> : <ContentCopyIcon />}
-    </IconButton>
-  )}
+            {/* RUN BUTTON INSIDE BOX */}
+            <Button
+              variant="contained"
+              disabled={!generatedQuery}
+              onClick={handleRunQuery}
+              startIcon={
+                loading ? (
+                  <CircularProgress size={18} sx={{ color: "#ffffff" }} />
+                ) : null
+              }
+              sx={{
+                position: "absolute",
+                bottom: 16,
+                right: 16,
+                borderRadius: 3,
+                textTransform: "none",
+                fontWeight: 600,
+                backgroundColor: "#2e7d32",  // success green
+                color: "#ffffff",            // white text
+                "&:hover": {
+                  backgroundColor: "#1b5e20"
+                },
+                "&.Mui-disabled": {
+                  backgroundColor: "#2e7d32", // keep same color
+                  color: "#ffffff",
+                  opacity: 1                 // remove faded effect
+                }
+              }}
+            >
+              {loading ? "Running..." : "Run"}
+            </Button>
 
-  <SyntaxHighlighter
-    language="sql"
-    style={okaidia}
-    wrapLongLines={true}
-    customStyle={{
-      margin: 0,
-      padding: "28px",
-      paddingBottom: "70px",   // 👈 important (space for button)
-      minHeight: "200px",
-      maxHeight: "450px",
-      overflowY: "auto",
-      overflowX: "hidden",
-      fontSize: "20px",
-      fontFamily: "Fira Code, monospace",
-      lineHeight: "1.6",
-      whiteSpace: "pre-wrap",
-      wordBreak: "break-word"
-    }}
-    codeTagProps={{
-    style: {
-      whiteSpace: "pre-wrap",
-      wordBreak: "break-word"
-    }
-  }}
-  >
-    {generatedQuery || "-- Your query will appear here"}
-  </SyntaxHighlighter>
+          </Box>
 
-  {/* RUN BUTTON INSIDE BOX */}
-  <Button
-  variant="contained"
-  disabled={!generatedQuery} 
-  onClick={handleRunQuery}
-  startIcon={
-    loading ? (
-      <CircularProgress size={18} sx={{ color: "#ffffff" }} />
-    ) : null
-  }
-  sx={{
-    position: "absolute",
-    bottom: 16,
-    right: 16,
-    borderRadius: 3,
-    textTransform: "none",
-    fontWeight: 600,
-    backgroundColor: "#2e7d32",  // success green
-    color: "#ffffff",            // white text
-    "&:hover": {
-      backgroundColor: "#1b5e20"
-    },
-    "&.Mui-disabled": {
-      backgroundColor: "#2e7d32", // keep same color
-      color: "#ffffff",
-      opacity: 1                 // remove faded effect
-    }
-  }}
->
-  {loading ? "Running..." : "Run"}
-</Button>
+          {aiLoading && (
+            <Box
+              sx={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                backdropFilter: "blur(4px)",
+                backgroundColor: "rgba(255,255,255,0.6)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                zIndex: 2000
+              }}
+            >
+              <Box textAlign="center">
+                <CircularProgress size={60} />
+                <Typography sx={{ mt: 2 }}>
+                  AI analysing your request...
+                </Typography>
+              </Box>
+            </Box>
+          )}
 
-</Box>
+          {/* RESULT TABLE */}
+          {queryResult && queryResult.length > 0 && (
+            <Box mt={3}>
 
-{aiLoading && (
-  <Box
-    sx={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      backdropFilter: "blur(4px)",
-      backgroundColor: "rgba(255,255,255,0.6)",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 2000
-    }}
-  >
-    <Box textAlign="center">
-      <CircularProgress size={60} />
-      <Typography sx={{ mt: 2 }}>
-        AI analysing your request...
-      </Typography>
-    </Box>
-  </Box>
-)}
-
-  {/* RESULT TABLE */}
-{queryResult && queryResult.length > 0 && (
-  <Box mt={3}>
-
-<Box mt={2} display="flex" gap={2}  justifyContent="flex-end">
-  {/* <Button
+              <Box mt={2} display="flex" gap={2} justifyContent="flex-end">
+                {/* <Button
     variant="contained"
     sx={{
     borderRadius: 3,
@@ -1714,177 +2034,280 @@ setQueryResult([]);
     Download PDF
   </Button> */}
 
-  <Tooltip title="Click to analyse data">
-  <IconButton
-    onClick={() => setOpenDialog(true)}
-    sx={{
-      backgroundColor: "#ffffff",
-      border: "1.5px solid #000",
-      color: "#000",
-      borderRadius: 2,
-      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-      "&:hover": {
-        backgroundColor: "#f5f5f5",
-        border: "1.5px solid #000"
-      }
-    }}
-  >
-    <QuestionAnswerIcon />
-  </IconButton>
-</Tooltip>
+                <Tooltip title="Click to analyse data">
+                  <IconButton
+                    onClick={() => setOpenDialog(true)}
+                    sx={{
+                      backgroundColor: "#ffffff",
+                      border: "1.5px solid #000",
+                      color: "#000",
+                      borderRadius: 2,
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                      "&:hover": {
+                        backgroundColor: "#f5f5f5",
+                        border: "1.5px solid #000"
+                      }
+                    }}
+                  >
+                    <QuestionAnswerIcon />
+                  </IconButton>
+                </Tooltip>
 
-<Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-  <DialogTitle>Enter Details</DialogTitle>
+               <Dialog
+  open={openDialog}
+  onClose={() => {
+    setOpenDialog(false);
+    setAnalysisMode(null);
+    setAiSuggestions([]);
+    setPromptErrorMsg("");
+  }}
+  maxWidth="sm"
+  fullWidth
+  PaperProps={{
+    sx: {
+      borderRadius: "20px",
+      padding: "10px"
+    }
+  }}
+>
+  <DialogTitle sx={{ fontWeight: 600 }}>
+    Generate AI Insights
+  </DialogTitle>
 
   <DialogContent>
-    <TextField
-      fullWidth
-      label="Enter Value"
-      value={formValue}
-      onChange={(e) => setFormValue(e.target.value)}
-      sx={{ mt: 1 }}
-    />
+
+    {/* ================= MODE SELECTION ================= */}
+    <Box sx={{ display: "flex", gap: 2, mb: 3, mt: 1 }}>
+      <Button
+        fullWidth
+        variant={analysisMode === "ai" ? "contained" : "outlined"}
+        onClick={() => {
+          setAnalysisMode("ai");
+          setPromptErrorMsg("");
+        }}
+      >
+        AI Suggested Insights
+      </Button>
+
+      <Button
+        fullWidth
+        variant={analysisMode === "prompt" ? "contained" : "outlined"}
+        onClick={() => {
+          setAnalysisMode("prompt");
+          setPromptErrorMsg("");
+        }}
+      >
+        Custom Prompt
+      </Button>
+    </Box>
+
+    {/* ================= AI MODE ================= */}
+    {analysisMode === "ai" && (
+      <>
+        <Button
+          variant="contained"
+          fullWidth
+          sx={{ borderRadius: 3,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  boxShadow: "0 4px 14px rgba(0,0,0,0.15)"}}
+          onClick={fetchAiSuggestions}
+        >
+          Generate Suggestions
+        </Button>
+
+        {aiPromotLoading && <LinearProgress sx={{ mt: 2 }} />}
+
+        {aiSuggestions.map((suggestion, index) => (
+          <Button
+            key={index}
+            fullWidth
+            variant="outlined"
+            sx={{ mt: 2 }}
+            onClick={() => handleAISuggestionClick(suggestion)}
+          >
+            {suggestion.title}
+          </Button>
+        ))}
+      </>
+    )}
+
+    {/* ================= PROMPT MODE ================= */}
+    {analysisMode === "prompt" && (
+      <>
+        <TextField
+          fullWidth
+          label="Enter your analysis request"
+          value={formValue}
+          onChange={(e) => setFormValue(e.target.value)}
+          sx={{ mt: 2 }}
+        />
+
+        <Button
+          variant="contained"
+          fullWidth
+          sx={{ mt: 2 ,
+             borderRadius: 3,
+              textTransform: "none",
+              fontWeight: 600,
+              boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
+          }}
+          onClick={handleSubmit}   // 🔥 YOUR EXISTING FUNCTION (UNCHANGED)
+        >
+          Generate
+        </Button>
+
+        {aiPromotLoading && <LinearProgress sx={{ mt: 2 }} />}
+      </>
+    )}
+
+    {promptErrorMsg && (
+      <Typography color="error" sx={{ mt: 2 }}>
+        {promptErrorMsg}
+      </Typography>
+    )}
+
   </DialogContent>
 
   <DialogActions>
-    <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-    <Button variant="contained" onClick={handleSubmit}>
-      Submit
-    </Button>
+    <Button variant="outlined"
+                color="error" sx={{borderRadius: 3,
+                  textTransform: "none",
+                  fontWeight: 600}} onClick={() => setOpenDialog(false)}>Close</Button>
   </DialogActions>
 </Dialog>
 
-  <Button
-  variant="contained"
-  color="success"
-  onClick={downloadExcel}
-  sx={{
-    borderRadius: 3,
-    minWidth: 38,          // small square button
-    width: 38,
-    height: 38,
-    backgroundColor: "#1f4c1f",
-    boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
-  }}
->
-  <DownloadIcon />
-</Button>
-</Box>
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={downloadExcel}
+                  sx={{
+                    borderRadius: 3,
+                    minWidth: 38,          // small square button
+                    width: 38,
+                    height: 38,
+                    backgroundColor: "#1f4c1f",
+                    boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
+                  }}
+                >
+                  <DownloadIcon />
+                </Button>
+              </Box>
 
-   <Paper
-  elevation={0}
-  sx={{
-    mt: 3,
-    borderRadius: 4,
-    boxShadow: "0 8px 24px rgba(0,0,0,0.08)"
-  }}
->
-   <Box sx={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead style={{
-  background: "linear-gradient(90deg,#1976d2,#42a5f5)",
-  color: "white"
-}}>
-
-          <tr>
-            {Object.keys(queryResult[0]).map((key) => (
-              <th
-                key={key}
-                style={{
-                  padding: "10px",
-                  border: "1px solid #ddd",
-                  textAlign: "left"
+              <Paper
+                elevation={0}
+                sx={{
+                  mt: 3,
+                  borderRadius: 4,
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.08)"
                 }}
               >
-                {key}
-              </th>
-            ))}
-          </tr>
-        </thead>
+                <Box sx={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead style={{
+                      background: "linear-gradient(90deg,#1976d2,#42a5f5)",
+                      color: "white"
+                    }}>
 
-        <tbody>
-          {queryResult
-            .slice(
-              (currentPage - 1) * rowsPerPage,
-              currentPage * rowsPerPage
-            )
-            .map((row, index) => (
-              <tr key={index}>
-                {Object.values(row).map((value, i) => (
-                  <td
-                    key={i}
-                    style={{
-                      padding: "10px",
-                      border: "1px solid #ddd"
-                    }}
-                  >
-                    {value}
-                  </td>
-                ))}
-              </tr>
-            ))}
-        </tbody>
-      </table>
+                      <tr>
+                        {Object.keys(queryResult[0]).map((key) => (
+                          <th
+                            key={key}
+                            style={{
+                              padding: "10px",
+                              border: "1px solid #ddd",
+                              textAlign: "left"
+                            }}
+                          >
+                            {key}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {queryResult
+                        .slice(
+                          (currentPage - 1) * rowsPerPage,
+                          currentPage * rowsPerPage
+                        )
+                        .map((row, index) => (
+                          <tr key={index}>
+                            {Object.values(row).map((value, i) => (
+                              <td
+                                key={i}
+                                style={{
+                                  padding: "10px",
+                                  border: "1px solid #ddd"
+                                }}
+                              >
+                                {value}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </Box>
+              </Paper>
+
+              {/* Pagination Controls */}
+              <Box mt={1}
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                sx={{
+                  background: "#ffffff",
+                  p: 2,
+                  borderRadius: 3,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
+                }}>
+                <Button
+                  variant="outlined"
+                  sx={{
+                    borderRadius: 3,
+                    textTransform: "none",
+                    fontWeight: 500
+                  }}
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                >
+                  Previous
+                </Button>
+
+                <Typography>
+                  Page {currentPage} of{" "}
+                  {Math.ceil(queryResult.length / rowsPerPage)}
+                </Typography>
+
+                <Button
+                  variant="outlined"
+                  sx={{
+                    borderRadius: 3,
+                    textTransform: "none",
+                    fontWeight: 600
+                  }}
+                  disabled={
+                    currentPage ===
+                    Math.ceil(queryResult.length / rowsPerPage)
+                  }
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                >
+                  Next
+                </Button>
+              </Box>
+            </Box>
+          )}
+
+
+        </Paper>
       </Box>
-    </Paper>
+      <>
+        {/* Your page content */}
+        <ModernBottomBar />
+      </>
 
-    {/* Pagination Controls */}
-    <Box  mt={1}
-  display="flex"
-  justifyContent="space-between"
-  alignItems="center"
-  sx={{
-    background: "#ffffff",
-    p: 2,
-    borderRadius: 3,
-    boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
-  }}>
-      <Button
-        variant="outlined"
-         sx={{
-    borderRadius: 3,
-    textTransform: "none",
-    fontWeight: 500
-  }}
-        disabled={currentPage === 1}
-        onClick={() => setCurrentPage(currentPage - 1)}
-      >
-        Previous
-      </Button>
-
-      <Typography>
-        Page {currentPage} of{" "}
-        {Math.ceil(queryResult.length / rowsPerPage)}
-      </Typography>
-
-      <Button
-        variant="outlined"
-         sx={{
-    borderRadius: 3,
-    textTransform: "none",
-    fontWeight: 600
-  }}
-        disabled={
-          currentPage ===
-          Math.ceil(queryResult.length / rowsPerPage)
-        }
-        onClick={() => setCurrentPage(currentPage + 1)}
-      >
-        Next
-      </Button>
     </Box>
-  </Box>
-)}
 
-
-      </Paper>
-    </Box>
-<>
-  {/* Your page content */}
-  <ModernBottomBar />
-</>
-
-  </Box>
-
-);
+  );
 }
