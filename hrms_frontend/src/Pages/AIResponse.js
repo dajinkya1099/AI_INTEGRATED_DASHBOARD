@@ -1,5 +1,5 @@
 // import React, { useEffect, useState } from "react";
-// import { DataGrid, GridToolbar } from "@mui/x-data-grid";
+import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 // import { processAIConfig } from "../Utils/processAIConfig";
 // import { CircularProgress } from "@mui/material";
 // import {
@@ -479,7 +479,7 @@ function AIResponse() {
         setLoading(false);
         return;
       }
-
+console.log("receivedConfigs:",receivedConfigs);
       if (receivedConfigs && Array.isArray(receivedConfigs)) {
         setConfigs(receivedConfigs);
         setLoading(false);
@@ -549,7 +549,7 @@ function AIResponse() {
           )}
 
           {/* TABLE */}
-          {config.viewType === "table" && (
+          {/* {config.viewType === "table" && (
             <Box sx={{ overflowX: "auto" }}>
               <table border="1" cellPadding="10" width="100%">
                 <thead>
@@ -570,7 +570,48 @@ function AIResponse() {
                 </tbody>
               </table>
             </Box>
-          )}
+          )} */}
+
+          {config.viewType === "table" && config.data && (
+  <Box
+    sx={{
+      height: 500,
+      width: "100%",
+      background: "#fff",
+      borderRadius: 3,
+      overflow: "hidden",
+      boxShadow: "0 8px 24px rgba(0,0,0,0.05)"
+    }}
+  >
+    <DataGrid
+      rows={config.data.map((row, index) => ({
+        id: row.id ?? index + 1, // Required unique id
+        ...row
+      }))}
+      columns={config.columns.map((col) => ({
+        field: col,
+        headerName: col.replace(/_/g, " ").toUpperCase(),
+        flex: 1,
+        minWidth: 120
+      }))}
+      pageSizeOptions={[5, 10, 20]}
+      initialState={{
+        pagination: { paginationModel: { pageSize: 5, page: 0 } }
+      }}
+      slots={{ toolbar: GridToolbar }}
+      sx={{
+        border: "none",
+        "& .MuiDataGrid-columnHeaders": {
+          backgroundColor: "#f4f6f9",
+          fontWeight: 700
+        },
+        "& .MuiDataGrid-row:hover": {
+          backgroundColor: "#f9fafb"
+        }
+      }}
+    />
+  </Box>
+)}
         </Paper>
       ))}
     </Box>

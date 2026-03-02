@@ -77,18 +77,26 @@ BAR / LINE
 - Must include:
     "xKey"
     "yKey"
+    "operation (Depends on title)"
 
 - xKey must be categorical column.
 - yKey must be numeric column.
-- NO aggregation in charts.
 - yKey must be raw numeric column name only.
 
-- MUST decide the correct operation based on the title meaning:
-    - Use "sum" for Total
-    - Use "mean" for Average
-    - Use "count" for Count
-    - Use "max" for Highest / Maximum
-    - Use "min" for Lowest / Minimum
+- operation must be one of:
+    "sum", "avg", "count", "min", "max"
+    
+- Operation must be determined strictly from the title:
+    If title contains "Total"     → operation = "sum"
+    If title contains "Average"   → operation = "avg"
+    If title contains "Count"     → operation = "count"
+    If title contains "Highest"   → operation = "max"
+    If title contains "Maximum"   → operation = "max"
+    If title contains "Lowest"    → operation = "min"
+    If title contains "Minimum"   → operation = "min"
+    
+- If none of these keywords appear in the title:
+    DO NOT include "operation"
 
 - Must NOT include:
     metric, categoryKey, valueKey,
@@ -592,6 +600,24 @@ def apply_ai_suggestions(data, suggestions):
 
                 if x not in df.columns or y not in df.columns:
                     continue
+                
+                if operation is None:
+                    title = sug.get("title", "").lower()
+
+            if "total" in title:
+                operation = "sum"
+            elif "average" in title:
+                operation = "avg"
+            elif "count" in title:
+                operation = "count"
+            elif "highest" in title or "maximum" in title:
+                operation = "max"
+            elif "lowest" in title or "minimum" in title:
+                operation = "min"
+
+            if operation is not None:
+                sug["operation"] = operation  # inject back
+
 
                 # If aggregation required
                 if operation is not None:

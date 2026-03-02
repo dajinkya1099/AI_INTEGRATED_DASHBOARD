@@ -226,7 +226,6 @@ if (chartType === "pie") {
 
   return (
     <Paper elevation={0} sx={{ p: 4, borderRadius: 4, background: "#fff", boxShadow: "0 12px 30px rgba(0,0,0,0.06)", height: 480 }}>
-      <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>{title}</Typography>
       <ResponsiveContainer width="100%" height="85%">
         {chartType === "line" && <LineChart data={data}>
           <CartesianGrid stroke="#e5e7eb" strokeDasharray="4 4" />
@@ -243,7 +242,14 @@ if (chartType === "pie") {
           <YAxis />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
-          <Bar dataKey={yKey} fill="#2563eb" radius={[8,8,0,0]} />
+          <Bar dataKey={yKey} radius={[8, 8, 0, 0]}>
+      {data.map((entry, index) => (
+        <Cell
+          key={`cell-${index}`}
+          fill={COLORS[index % COLORS.length]}
+        />
+      ))}
+    </Bar>
         </BarChart>}
 
         {chartType === "area" && <AreaChart data={data}>
