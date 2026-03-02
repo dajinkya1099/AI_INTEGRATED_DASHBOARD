@@ -319,7 +319,7 @@ def call1_analyze_and_structure(question: str, rows: list, schema_name: str) -> 
                     "num_ctx":     8192,
                 },
             },
-            timeout=300,
+            timeout=800,
         )
         raw = resp.json().get("response", "").strip()
         print(f"  response length: {len(raw)}")

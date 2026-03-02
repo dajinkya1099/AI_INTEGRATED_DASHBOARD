@@ -27,7 +27,7 @@ function BottomBar() {
         bottom: 0,
         left: 0,
         width: "100%",
-        height: 40,
+        height: 35,
         overflow: "hidden",
         zIndex: 1500,
         backdropFilter: "blur(12px)",
@@ -67,7 +67,7 @@ function BottomBar() {
             }}
           >
             {item.icon}
-            <Typography variant="body2" fontWeight={400}>
+            <Typography variant="body2" fontWeight={350}>
               {item.label}
             </Typography>
           </Box>
