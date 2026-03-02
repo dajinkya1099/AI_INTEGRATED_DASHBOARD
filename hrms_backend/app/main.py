@@ -5,7 +5,15 @@ from typing import Any
 from app.query_generator import generate_sql
 from app.schema_generator import execute_sql_get_db_data_by_schemaName_query,parse_schema_text,get_user_schema_names
 # from app.react_code_generator import generate_react_visualization
-from app.react_code_generator_agent import generate_react_visualization
+# from app.react_code_generator_agent import generate_react_visualization
+# from app.visualization_servie  import generate_react_visualization
+# from app.visualization_service_with_cache  import generate_react_visualization
+# from app.visualization_agent import generate_react_visualization
+from app.viz_agent import generate_react_visualization
+
+import time
+
+
 
 app = FastAPI()
 
@@ -42,7 +50,7 @@ def get_schema(schemaName : str):
     return schema
 
 
-class QueryRequest(BaseModel):
+class QueryRequest(BaseModel):  
     schemaName: str
     query: str
     textQue: str
@@ -82,6 +90,9 @@ def get_db_data_by_textQue(request: QueryRequest):
 @app.post("/get-react-code-using-ai")
 def get_react_code_using_AI(request: QueryRequest):
     print("method for get db data for given textQue")
+    start = time.perf_counter()
+    print("get_react_code_using_AI method start Time:",  start)
+
     react_code = generate_react_visualization(request)
     print("react_code " , react_code)
 
@@ -90,5 +101,8 @@ def get_react_code_using_AI(request: QueryRequest):
     #     sql
     # )
     print("dbData ",react_code)
+    end = time.perf_counter()
+    print("get_react_code_using_AI method end Time:",  end)
+    print("get_react_code_using_AI method Planner Time:", end - start)
     return react_code
   
