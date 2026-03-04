@@ -479,7 +479,7 @@ function AIResponse() {
         setLoading(false);
         return;
       }
-console.log("receivedConfigs:",receivedConfigs);
+      console.log("receivedConfigs:", receivedConfigs);
       if (receivedConfigs && Array.isArray(receivedConfigs)) {
         setConfigs(receivedConfigs);
         setLoading(false);
@@ -531,7 +531,17 @@ console.log("receivedConfigs:",receivedConfigs);
             boxShadow: "0 12px 30px rgba(0,0,0,0.06)"
           }}
         >
-          <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              mb: 3,                 // margin bottom
+              fontWeight: 700,       // bold
+              fontSize: '1.25rem',   // size of the heading
+              color: '#1e293b',      // dark slate color
+              textTransform: 'uppercase', // optional: uppercase letters
+              letterSpacing: '0.5px',     // slight spacing
+            }}
+          >
             {config.title}
           </Typography>
 
@@ -573,45 +583,45 @@ console.log("receivedConfigs:",receivedConfigs);
           )} */}
 
           {config.viewType === "table" && config.data && (
-  <Box
-    sx={{
-      height: 500,
-      width: "100%",
-      background: "#fff",
-      borderRadius: 3,
-      overflow: "hidden",
-      boxShadow: "0 8px 24px rgba(0,0,0,0.05)"
-    }}
-  >
-    <DataGrid
-      rows={config.data.map((row, index) => ({
-        id: row.id ?? index + 1, // Required unique id
-        ...row
-      }))}
-      columns={config.columns.map((col) => ({
-        field: col,
-        headerName: col.replace(/_/g, " ").toUpperCase(),
-        flex: 1,
-        minWidth: 120
-      }))}
-      pageSizeOptions={[5, 10, 20]}
-      initialState={{
-        pagination: { paginationModel: { pageSize: 5, page: 0 } }
-      }}
-      slots={{ toolbar: GridToolbar }}
-      sx={{
-        border: "none",
-        "& .MuiDataGrid-columnHeaders": {
-          backgroundColor: "#f4f6f9",
-          fontWeight: 700
-        },
-        "& .MuiDataGrid-row:hover": {
-          backgroundColor: "#f9fafb"
-        }
-      }}
-    />
-  </Box>
-)}
+            <Box
+              sx={{
+                height: 500,
+                width: "100%",
+                background: "#fff",
+                borderRadius: 3,
+                overflow: "hidden",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.05)"
+              }}
+            >
+              <DataGrid
+                rows={config.data.map((row, index) => ({
+                  id: row.id ?? index + 1, // Required unique id
+                  ...row
+                }))}
+                columns={config.columns.map((col) => ({
+                  field: col,
+                  headerName: col.replace(/_/g, " ").toUpperCase(),
+                  flex: 1,
+                  minWidth: 120
+                }))}
+                pageSizeOptions={[5, 10, 20]}
+                initialState={{
+                  pagination: { paginationModel: { pageSize: 5, page: 0 } }
+                }}
+                slots={{ toolbar: GridToolbar }}
+                sx={{
+                  border: "none",
+                  "& .MuiDataGrid-columnHeaders": {
+                    backgroundColor: "#f4f6f9",
+                    fontWeight: 700
+                  },
+                  "& .MuiDataGrid-row:hover": {
+                    backgroundColor: "#f9fafb"
+                  }
+                }}
+              />
+            </Box>
+          )}
         </Paper>
       ))}
     </Box>

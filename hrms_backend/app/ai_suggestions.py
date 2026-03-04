@@ -558,166 +558,364 @@ def convert_numpy_to_native(val):
 #     return {"suggestions": result}
 
 
+# def apply_ai_suggestions(data, suggestions):
+#     """
+#     data: list of dicts -> dataset
+#     suggestions: list of dicts -> AI generated suggestions
+#     """
+
+#     import pandas as pd
+
+#     df = pd.DataFrame(data)
+#     result = []
+
+#     for suggestion in suggestions:
+#         sug = suggestion.copy()
+
+#         # ---------------------- SORTING + LIMIT (COMMON FOR TABLE/RANKING) ----------------------
+#         df_sorted = df.copy()
+
+#         sort_by = sug.get("sortBy")
+#         order = sug.get("order", "asc").lower()
+#         limit = sug.get("limit")
+
+#         if sort_by in df.columns:
+#             ascending = (order == "asc")
+#             df_sorted = df_sorted.sort_values(by=sort_by, ascending=ascending)
+
+#         if isinstance(limit, int) and limit > 0:
+#             df_sorted = df_sorted.head(limit)
+
+#         # ---------------------- CHART ----------------------
+#         if sug.get("viewType") == "chart":
+
+#             chart_type = sug.get("chartType")
+
+#             # ----- BAR / LINE / AREA -----
+#             if chart_type in ["bar", "line", "area"]:
+
+#                 x = sug.get("xKey")
+#                 y = sug.get("yKey")
+#                 operation = sug.get("operation")  # no default
+
+#                 if x not in df.columns or y not in df.columns:
+#                     continue
+                
+#                 if operation is None:
+#                     title = sug.get("title", "").lower()
+                    
+#                     if "total" in title:
+#                         operation = "sum"
+#                     elif "average" in title:
+#                         operation = "avg"
+#                     elif "count" in title:
+#                         operation = "count"
+#                     elif "highest" in title or "maximum" in title:
+#                         operation = "max"
+#                     elif "lowest" in title or "minimum" in title:
+#                         operation = "min"
+
+#                 if operation is not None:
+#                     sug["operation"] = operation  # inject back
+
+
+#                 # If aggregation required
+#                 if operation is not None:
+
+#                     if operation == "sum":
+#                         result_df = df.groupby(x, as_index=False)[y].sum()
+
+#                     elif operation == "avg":
+#                         result_df = df.groupby(x, as_index=False)[y].mean()
+
+#                     elif operation == "count":
+#                         result_df = df.groupby(x, as_index=False)[y].count()
+
+#                     elif operation == "min":
+#                         result_df = df.groupby(x, as_index=False)[y].min()
+
+#                     elif operation == "max":
+#                         result_df = df.groupby(x, as_index=False)[y].max()
+
+#                     else:
+#                         continue  # invalid operation
+
+#                 else:
+#                     # No aggregation → use sorted raw data
+#                     result_df = df_sorted[[x, y]].copy()
+
+#                 sug["data"] = [
+#                     {
+#                         "x": convert_numpy_to_native(row[x]),
+#                         "y": convert_numpy_to_native(row[y])
+#                     }
+#                     for _, row in result_df.iterrows()
+#                 ]
+
+#             # ----- PIE -----
+#             elif chart_type == "pie":
+#                 cat = sug.get("categoryKey")
+#                 val = sug.get("valueKey")
+
+#                 if cat not in df.columns or val not in df.columns:
+#                     continue
+
+#                 # Group and count (since pie usually represents distribution)
+#                 grouped = df.groupby(cat)[val].count().reset_index(name="value")
+
+#                 sug["data"] = [
+#                     {
+#                         "name": convert_numpy_to_native(row[cat]),
+#                         "value": convert_numpy_to_native(row["value"])
+#                     }
+#                     for _, row in grouped.iterrows()
+#                 ]
+
+#         # ---------------------- CARD ----------------------
+#         elif sug.get("viewType") == "card":
+
+#             metric = sug.get("metric")
+#             operation = sug.get("operation", "count")
+
+#             if operation == "count":
+#                 sug["value"] = convert_numpy_to_native(len(df))
+
+#             elif metric in df.columns:
+
+#                 if operation == "sum":
+#                     sug["value"] = convert_numpy_to_native(df[metric].sum())
+
+#                 elif operation == "avg":
+#                     sug["value"] = convert_numpy_to_native(df[metric].mean())
+
+#                 elif operation == "min":
+#                     sug["value"] = convert_numpy_to_native(df[metric].min())
+
+#                 elif operation == "max":
+#                     sug["value"] = convert_numpy_to_native(df[metric].max())
+
+#                 else:
+#                     continue
+#             else:
+#                 continue
+
+#         # ---------------------- TABLE ----------------------
+#         elif sug.get("viewType") == "table":
+
+#             cols = [col for col in sug.get("columns", []) if col in df.columns]
+
+#             if not cols:
+#                 continue
+
+#             sug["columns"] = cols
+#             temp_df = df_sorted[cols]
+
+#             sug["data"] = [
+#                 {
+#                     k: convert_numpy_to_native(v)
+#                     for k, v in row.items()
+#                 }
+#                 for row in temp_df.to_dict("records")
+#             ]
+
+#         result.append(sug)
+
+#     return {"suggestions": result}
+
+
 def apply_ai_suggestions(data, suggestions):
     """
     data: list of dicts -> dataset
     suggestions: list of dicts -> AI generated suggestions
     """
 
-    import pandas as pd
 
-    df = pd.DataFrame(data)
+
+    try:
+        df = pd.DataFrame(data)
+    except Exception as e:
+        print("DataFrame creation failed:", e)
+        return {"suggestions": []}
+
     result = []
 
     for suggestion in suggestions:
-        sug = suggestion.copy()
+        try:
+            sug = suggestion.copy()
 
-        # ---------------------- SORTING + LIMIT (COMMON FOR TABLE/RANKING) ----------------------
-        df_sorted = df.copy()
+            # ---------------------- SORTING + LIMIT ----------------------
+            df_sorted = df.copy()
 
-        sort_by = sug.get("sortBy")
-        order = sug.get("order", "asc").lower()
-        limit = sug.get("limit")
+            sort_by = sug.get("sortBy")
+            order = sug.get("order", "asc").lower()
+            limit = sug.get("limit")
 
-        if sort_by in df.columns:
-            ascending = (order == "asc")
-            df_sorted = df_sorted.sort_values(by=sort_by, ascending=ascending)
+            try:
+                if sort_by in df.columns:
+                    ascending = (order == "asc")
+                    df_sorted = df_sorted.sort_values(by=sort_by, ascending=ascending)
+            except Exception as e:
+                print("Sorting failed:", e)
 
-        if isinstance(limit, int) and limit > 0:
-            df_sorted = df_sorted.head(limit)
+            try:
+                if isinstance(limit, int) and limit > 0:
+                    df_sorted = df_sorted.head(limit)
+            except Exception as e:
+                print("Limit failed:", e)
 
-        # ---------------------- CHART ----------------------
-        if sug.get("viewType") == "chart":
+            # ---------------------- CHART ----------------------
+            if sug.get("viewType") == "chart":
 
-            chart_type = sug.get("chartType")
+                chart_type = sug.get("chartType")
 
-            # ----- BAR / LINE / AREA -----
-            if chart_type in ["bar", "line", "area"]:
+                # ----- BAR / LINE / AREA -----
+                if chart_type in ["bar", "line", "area"]:
 
-                x = sug.get("xKey")
-                y = sug.get("yKey")
-                operation = sug.get("operation")  # no default
+                    x = sug.get("xKey")
+                    y = sug.get("yKey")
+                    operation = sug.get("operation")
 
-                if x not in df.columns or y not in df.columns:
-                    continue
-                
-                if operation is None:
-                    title = sug.get("title", "").lower()
+                    if x not in df.columns or y not in df.columns:
+                        continue
 
-            if "total" in title:
-                operation = "sum"
-            elif "average" in title:
-                operation = "avg"
-            elif "count" in title:
-                operation = "count"
-            elif "highest" in title or "maximum" in title:
-                operation = "max"
-            elif "lowest" in title or "minimum" in title:
-                operation = "min"
+                    if operation is None:
+                        title = sug.get("title", "").lower()
 
-            if operation is not None:
-                sug["operation"] = operation  # inject back
+                        if "total" in title:
+                            operation = "sum"
+                        elif "average" in title:
+                            operation = "avg"
+                        elif "count" in title:
+                            operation = "count"
+                        elif "highest" in title or "maximum" in title:
+                            operation = "max"
+                        elif "lowest" in title or "minimum" in title:
+                            operation = "min"
 
+                    if operation is not None:
+                        sug["operation"] = operation
 
-                # If aggregation required
-                if operation is not None:
+                    # Aggregation block (protected)
+                    try:
+                        if operation == "sum":
+                            result_df = df.groupby(x, as_index=False)[y].sum()
 
-                    if operation == "sum":
-                        result_df = df.groupby(x, as_index=False)[y].sum()
+                        elif operation == "avg":
+                            result_df = df.groupby(x, as_index=False)[y].mean()
 
-                    elif operation == "avg":
-                        result_df = df.groupby(x, as_index=False)[y].mean()
+                        elif operation == "count":
+                            result_df = df.groupby(x, as_index=False)[y].count()
 
-                    elif operation == "count":
-                        result_df = df.groupby(x, as_index=False)[y].count()
+                        elif operation == "min":
+                            result_df = df.groupby(x, as_index=False)[y].min()
 
-                    elif operation == "min":
-                        result_df = df.groupby(x, as_index=False)[y].min()
+                        elif operation == "max":
+                            result_df = df.groupby(x, as_index=False)[y].max()
 
-                    elif operation == "max":
-                        result_df = df.groupby(x, as_index=False)[y].max()
+                        else:
+                            result_df = df_sorted[[x, y]].copy()
 
+                    except Exception as e:
+                        print("Aggregation failed:", e)
+                        continue
+
+                    # Convert to chart format
+                    try:
+                        sug["data"] = [
+                            {
+                                "x": convert_numpy_to_native(row[x]),
+                                "y": convert_numpy_to_native(row[y])
+                            }
+                            for _, row in result_df.iterrows()
+                        ]
+                    except Exception as e:
+                        print("Chart data formatting failed:", e)
+                        continue
+
+                # ----- PIE -----
+                elif chart_type == "pie":
+                    cat = sug.get("categoryKey")
+                    val = sug.get("valueKey")
+
+                    if cat not in df.columns or val not in df.columns:
+                        continue
+
+                    try:
+                        grouped = df.groupby(cat)[val].count().reset_index(name="value")
+
+                        sug["data"] = [
+                            {
+                                "name": convert_numpy_to_native(row[cat]),
+                                "value": convert_numpy_to_native(row["value"])
+                            }
+                            for _, row in grouped.iterrows()
+                        ]
+                    except Exception as e:
+                        print("Pie chart processing failed:", e)
+                        continue
+
+            # ---------------------- CARD ----------------------
+            elif sug.get("viewType") == "card":
+
+                metric = sug.get("metric")
+                operation = sug.get("operation", "count")
+
+                try:
+                    if operation == "count":
+                        sug["value"] = convert_numpy_to_native(len(df))
+
+                    elif metric in df.columns:
+
+                        if operation == "sum":
+                            sug["value"] = convert_numpy_to_native(df[metric].sum())
+
+                        elif operation == "avg":
+                            sug["value"] = convert_numpy_to_native(df[metric].mean())
+
+                        elif operation == "min":
+                            sug["value"] = convert_numpy_to_native(df[metric].min())
+
+                        elif operation == "max":
+                            sug["value"] = convert_numpy_to_native(df[metric].max())
+
+                        else:
+                            continue
                     else:
-                        continue  # invalid operation
+                        continue
 
-                else:
-                    # No aggregation → use sorted raw data
-                    result_df = df_sorted[[x, y]].copy()
-
-                sug["data"] = [
-                    {
-                        "x": convert_numpy_to_native(row[x]),
-                        "y": convert_numpy_to_native(row[y])
-                    }
-                    for _, row in result_df.iterrows()
-                ]
-
-            # ----- PIE -----
-            elif chart_type == "pie":
-                cat = sug.get("categoryKey")
-                val = sug.get("valueKey")
-
-                if cat not in df.columns or val not in df.columns:
+                except Exception as e:
+                    print("Card calculation failed:", e)
                     continue
 
-                # Group and count (since pie usually represents distribution)
-                grouped = df.groupby(cat)[val].count().reset_index(name="value")
+            # ---------------------- TABLE ----------------------
+            elif sug.get("viewType") == "table":
 
-                sug["data"] = [
-                    {
-                        "name": convert_numpy_to_native(row[cat]),
-                        "value": convert_numpy_to_native(row["value"])
-                    }
-                    for _, row in grouped.iterrows()
-                ]
+                try:
+                    cols = [col for col in sug.get("columns", []) if col in df.columns]
 
-        # ---------------------- CARD ----------------------
-        elif sug.get("viewType") == "card":
+                    if not cols:
+                        continue
 
-            metric = sug.get("metric")
-            operation = sug.get("operation", "count")
+                    sug["columns"] = cols
+                    temp_df = df_sorted[cols]
 
-            if operation == "count":
-                sug["value"] = convert_numpy_to_native(len(df))
+                    sug["data"] = [
+                        {
+                            k: convert_numpy_to_native(v)
+                            for k, v in row.items()
+                        }
+                        for row in temp_df.to_dict("records")
+                    ]
 
-            elif metric in df.columns:
-
-                if operation == "sum":
-                    sug["value"] = convert_numpy_to_native(df[metric].sum())
-
-                elif operation == "avg":
-                    sug["value"] = convert_numpy_to_native(df[metric].mean())
-
-                elif operation == "min":
-                    sug["value"] = convert_numpy_to_native(df[metric].min())
-
-                elif operation == "max":
-                    sug["value"] = convert_numpy_to_native(df[metric].max())
-
-                else:
+                except Exception as e:
+                    print("Table processing failed:", e)
                     continue
-            else:
-                continue
 
-        # ---------------------- TABLE ----------------------
-        elif sug.get("viewType") == "table":
+            result.append(sug)
 
-            cols = [col for col in sug.get("columns", []) if col in df.columns]
-
-            if not cols:
-                continue
-
-            sug["columns"] = cols
-            temp_df = df_sorted[cols]
-
-            sug["data"] = [
-                {
-                    k: convert_numpy_to_native(v)
-                    for k, v in row.items()
-                }
-                for row in temp_df.to_dict("records")
-            ]
-
-        result.append(sug)
+        except Exception as e:
+            # Catch completely unexpected failure per suggestion
+            print("Suggestion processing failed:", e)
+            continue
 
     return {"suggestions": result}
