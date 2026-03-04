@@ -214,7 +214,19 @@ function AISuggestions({ suggestions = [], loading = false }) {
           </Box>
 
           {/* ChartRenderer — passes selected suggestion config directly */}
-          <ChartRenderer config={selected} />
+          {selected.reactCode ? (
+  // HTML from viz agent — render in iframe
+  <Box sx={{ width: "100%", height: 520, borderRadius: 3, overflow: "hidden" }}>
+    <iframe
+      srcDoc={selected.reactCode}
+      style={{ width: "100%", height: "100%", border: "none" }}
+      title={selected.title}
+    />
+  </Box>
+) : (
+  // JSON data from ai suggestions — render with ChartRenderer
+  <ChartRenderer config={selected} />
+)}
         </Box>
       )}
     </Box>

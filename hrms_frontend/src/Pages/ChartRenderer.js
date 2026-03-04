@@ -280,30 +280,75 @@ function TableView({ data }) {
 
 
 // ── Text/Summary renderer (for chartType = "text" or "card") ─────────────────
-function StatsView({ data }) {
+// function StatsView({ data }) {
+//   if (!data || !data.length) return <Typography>No data</Typography>;
+
+//   return (
+//     <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+//       {data.map((item, i) => (
+//         <Paper key={i} elevation={0} sx={{
+//           p: 2, borderRadius: 2, minWidth: 140, flex: "1 1 140px",
+//           background: "#f8fafc", border: "1px solid #e2e8f0"
+//         }}>
+//           <Typography sx={{ fontSize: "0.72rem", color: "#64748b", mb: 0.5, fontWeight: 600 }}>
+//             {item.metric}
+//           </Typography>
+//           <Typography sx={{ fontSize: "1.1rem", fontWeight: 700, color: "#1e293b" }}>
+//             {typeof item.value === "number"
+//               ? item.value.toLocaleString()
+//               : item.value}
+//           </Typography>
+//         </Paper>
+//       ))}
+//     </Box>
+//   );
+// }
+
+function StatsView({ data, chartType }) {
   if (!data || !data.length) return <Typography>No data</Typography>;
 
+  // Separate metric cards from text items
+  const metrics = data.filter(d => d.metric && d.value !== undefined);
+
   return (
-    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-      {data.map((item, i) => (
-        <Paper key={i} elevation={0} sx={{
-          p: 2, borderRadius: 2, minWidth: 140, flex: "1 1 140px",
-          background: "#f8fafc", border: "1px solid #e2e8f0"
+    <Box>
+      {/* Stat Cards */}
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 3 }}>
+        {metrics.map((item, i) => (
+          <Paper key={i} elevation={0} sx={{
+            p: 2, borderRadius: 2, minWidth: 140, flex: "1 1 140px",
+            background: "#f8fafc", border: "1px solid #e2e8f0"
+          }}>
+            <Typography sx={{ fontSize: "0.72rem", color: "#64748b", mb: 0.5, fontWeight: 600 }}>
+              {item.metric}
+            </Typography>
+            <Typography sx={{ fontSize: "1.1rem", fontWeight: 700, color: "#1e293b" }}>
+              {typeof item.value === "number"
+                ? item.value.toLocaleString()
+                : item.value}
+            </Typography>
+          </Paper>
+        ))}
+      </Box>
+
+      {/* Text paragraph — only for "text" type */}
+      {chartType === "text" && metrics.length > 0 && (
+        <Paper elevation={0} sx={{
+          p: 2.5, borderRadius: 2,
+          background: "#eff6ff",
+          border: "1px solid #bfdbfe"
         }}>
-          <Typography sx={{ fontSize: "0.72rem", color: "#64748b", mb: 0.5, fontWeight: 600 }}>
-            {item.metric}
+          <Typography sx={{ fontSize: "0.82rem", color: "#1e40af", fontWeight: 700, mb: 1 }}>
+            📊 Summary
           </Typography>
-          <Typography sx={{ fontSize: "1.1rem", fontWeight: 700, color: "#1e293b" }}>
-            {typeof item.value === "number"
-              ? item.value.toLocaleString()
-              : item.value}
+          <Typography sx={{ fontSize: "0.82rem", color: "#374151", lineHeight: 1.7 }}>
+            {metrics.map(m => `${m.metric}: ${m.value}`).join("  ·  ")}
           </Typography>
         </Paper>
-      ))}
+      )}
     </Box>
   );
 }
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN — ChartRenderer
@@ -358,7 +403,7 @@ function ChartRenderer({ config }) {
         p: 3, borderRadius: 4,
         boxShadow: "0 12px 30px rgba(0,0,0,0.06)"
       }}>
-        <StatsView data={rawData} />
+         <StatsView data={rawData} chartType={chartType} /> 
       </Paper>
     );
   }

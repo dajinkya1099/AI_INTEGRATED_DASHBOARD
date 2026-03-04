@@ -90,6 +90,8 @@ export default function QueryBuilder() {
   const [analysisMode, setAnalysisMode] = useState(null);
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
+  const [customHtml, setCustomHtml] = useState("");
+  const [showHtmlView, setShowHtmlView] = useState(false);
 
   console.log("style", modernSelectStyle);
   const rowsPerPage = 4;
@@ -555,31 +557,29 @@ export default function QueryBuilder() {
       const result = await response.json();
       console.log("result:", result);          // ← check what you're getting
       console.log("reactCode:", result.reactCode); // ← confirm key name
-
+      //this code i open in new page
+      // if (result.reactCode) {
+      //   localStorage.setItem("generatedReactCode", result.reactCode);
+      //   localStorage.setItem("generatedMeta", JSON.stringify({
+      //     query: generatedQuery,
+      //     schema: selectedSchema,
+      //     question: formValue,
+      //     generatedAt: new Date().toISOString()
+      //   }));
+      //   const saved = localStorage.getItem("generatedReactCode");
+      //   console.log("saved to localStorage:", !!saved);
+      //   const newTab = window.open("/custom-response", "_blank");
+      //   if (!newTab) {
+      //     console.warn("Popup blocked! Navigating in same tab...");
+      //     window.location.href = "/custom-response";
+      //   }
+      //   setOpenDialog(false);
+      // } 
       if (result.reactCode) {
-        // 1. Set localStorage FIRST
-        localStorage.setItem("generatedReactCode", result.reactCode);
-        localStorage.setItem("generatedMeta", JSON.stringify({
-          query: generatedQuery,
-          schema: selectedSchema,
-          question: formValue,
-          generatedAt: new Date().toISOString()
-        }));
-
-        // 2. Confirm it was saved
-        const saved = localStorage.getItem("generatedReactCode");
-        console.log("saved to localStorage:", !!saved);
-
-        const newTab = window.open("/custom-response", "_blank");
-
-        // 4. If browser blocked popup, fallback to same tab navigate
-        if (!newTab) {
-          console.warn("Popup blocked! Navigating in same tab...");
-          window.location.href = "/custom-response";
-        }
-
+        setCustomHtml(result.reactCode);
+        setShowHtmlView(true);   // ← auto-expand the view
         setOpenDialog(false);
-      } else {
+      }else {
         console.error("reactCode missing in response. Keys:", Object.keys(result));
       }
 
@@ -2332,6 +2332,58 @@ const fetchAiSuggestions = async () => {
 
 
         </Paper>
+        {/* ── Custom AI HTML View ── */}
+          {customHtml && (
+            <Box mt={3}>
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: 4,
+                  overflow: "hidden",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
+                  border: "1px solid rgba(255,255,255,0.3)"
+                }}
+              >
+                {/* Header bar */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    px: 3,
+                    py: 1.5,
+                    background: "linear-gradient(90deg, #1976d2, #42a5f5)",
+                    cursor: "pointer"
+                  }}
+                  onClick={() => setShowHtmlView(!showHtmlView)}
+                >
+                  <Typography
+                    sx={{ color: "#fff", fontWeight: 700, fontSize: "0.95rem" }}
+                  >
+                    🤖 AI Generated Visualization
+                  </Typography>
+                  <Typography sx={{ color: "#fff", fontSize: "0.85rem" }}>
+                    {showHtmlView ? "▲ Hide" : "▼ Show"}
+                  </Typography>
+                </Box>
+
+                {/* iframe */}
+                {showHtmlView && (
+                  <Box sx={{ width: "100%", height: 520 }}>
+                    <iframe
+                      srcDoc={customHtml}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        border: "none"
+                      }}
+                      title="AI Visualization"
+                    />
+                  </Box>
+                )}
+              </Paper>
+            </Box>
+          )}
       </Box>
       <>
         {/* Your page content */}
