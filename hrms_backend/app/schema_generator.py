@@ -236,11 +236,12 @@ def execute_sql_get_db_data_by_schemaName_query(schemaName: str ,query : str):
     updatedQuery =clean_sql_query_and_append_schemaName(schemaName,query)
     print( updatedQuery)
     try:
-        cursor.execute(updatedQuery)
+       
 
         # If SELECT query
         if updatedQuery.strip().lower().startswith("select"):
             print("if ")
+            cursor.execute(updatedQuery)
             columns = [desc[0] for desc in cursor.description]
             rows = cursor.fetchall()
             print("rows " , rows)

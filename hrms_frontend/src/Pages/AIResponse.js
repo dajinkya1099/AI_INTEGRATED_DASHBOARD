@@ -462,6 +462,7 @@ import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import React, { useEffect, useState } from "react";
 import { Box, Typography, Paper, Card, CardContent, CircularProgress } from "@mui/material";
 import ChartRenderer from "./ChartRenderer";
+import AISuggestions from "./AISuggestions";
 
 function AIResponse() {
   const [configs, setConfigs] = useState([]);
@@ -627,5 +628,7 @@ function AIResponse() {
     </Box>
   );
 }
+
+
 
 export default AIResponse;
