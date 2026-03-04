@@ -17,6 +17,7 @@ import { modernSelectStyle, menuItemStyle, selectMenuProps } from "../Styles/For
 import Tooltip from "@mui/material/Tooltip";
 import ModernBottomBar from "../Components/BottomBar";
 import LinearProgress from "@mui/material/LinearProgress";
+import AISuggestions from "./AISuggestions";
 
 import {
   Box,
@@ -88,6 +89,7 @@ export default function QueryBuilder() {
   const [aiPromotLoading, setAiPromptLoading] = useState(false);
   const [analysisMode, setAnalysisMode] = useState(null);
   const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
 
   console.log("style", modernSelectStyle);
   const rowsPerPage = 4;
@@ -879,9 +881,13 @@ const fetchAiSuggestions = async () => {
 
     const result = await response.json();
 
-    if (result.suggestions) {
-      setAiSuggestions(result.suggestions);
-    } else {
+    // if (result.suggestions) {
+    //   setAiSuggestions(result.suggestions);
+    // } 
+    // to this:
+    if (Array.isArray(result) && result.length > 0) {
+      setSuggestions(result);   // ← feeds AISuggestions component
+  }else {
       setPromptErrorMsg("No suggestions received.");
     }
 
@@ -2061,7 +2067,7 @@ const fetchAiSuggestions = async () => {
     setAiSuggestions([]);
     setPromptErrorMsg("");
   }}
-  maxWidth="sm"
+  maxWidth="lg"
   fullWidth
   PaperProps={{
     sx: {
@@ -2102,7 +2108,7 @@ const fetchAiSuggestions = async () => {
     </Box>
 
     {/* ================= AI MODE ================= */}
-    {analysisMode === "ai" && (
+    {/* {analysisMode === "ai" && (
       <>
         <Button
           variant="contained"
@@ -2130,7 +2136,32 @@ const fetchAiSuggestions = async () => {
           </Button>
         ))}
       </>
+    )} */}
+
+    {analysisMode === "ai" && (
+  <>
+    <Button
+      variant="contained"
+      fullWidth
+      sx={{ borderRadius: 3,
+              textTransform: "none",
+              fontWeight: 600,
+              boxShadow: "0 4px 14px rgba(0,0,0,0.15)"}}
+      onClick={fetchAiSuggestions}
+    >
+      Generate Suggestions
+    </Button>
+
+    {aiPromotLoading && <LinearProgress sx={{ mt: 2 }} />}
+
+    {/* NEW — show suggestion cards + chart inline */}
+    {suggestions.length > 0 && (
+      <Box sx={{ mt: 2 }}>
+        <AISuggestions suggestions={suggestions} loading={aiPromotLoading} />
+      </Box>
     )}
+  </>
+)}
 
     {/* ================= PROMPT MODE ================= */}
     {analysisMode === "prompt" && (

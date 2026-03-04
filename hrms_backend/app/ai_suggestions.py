@@ -1,4 +1,4 @@
-from app.config import OLLAMA_URL, OLLAMA_MODEL
+from app.config import OLLAMA_URL, OLLAMA_MODEL,OLLAMA_MODEL_INTENT
 import re
 import json
 import requests
@@ -319,7 +319,7 @@ def ollama_model_call_for_ai_suggestions(prompt):
         response = requests.post(
             OLLAMA_URL,
             json={
-                "model": OLLAMA_MODEL,
+                "model": OLLAMA_MODEL_INTENT,
                 "prompt": prompt,
                 "stream": False
             },
