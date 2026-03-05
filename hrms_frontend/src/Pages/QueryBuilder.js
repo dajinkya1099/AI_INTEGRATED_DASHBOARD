@@ -18,6 +18,7 @@ import Tooltip from "@mui/material/Tooltip";
 import ModernBottomBar from "../Components/BottomBar";
 import LinearProgress from "@mui/material/LinearProgress";
 import AISuggestions from "./AISuggestions";
+import ChartRenderer from "./ChartRenderer";   // adjust path if needed
 
 import {
   Box,
@@ -90,9 +91,10 @@ export default function QueryBuilder() {
   const [analysisMode, setAnalysisMode] = useState(null);
   const [aiSuggestions, setAiSuggestions] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
-  const [customHtml, setCustomHtml] = useState("");
-  const [showHtmlView, setShowHtmlView] = useState(false);
-
+  const [customHtml,    setCustomHtml]    = useState("");   // Option 1 — raw HTML
+  const [customJson,    setCustomJson]    = useState(null); // Option 2 — JSON chart
+  const [showHtmlView,  setShowHtmlView]  = useState(true); // toggle: true=HTML, false=JSON
+  const [vizLoading,    setVizLoading]    = useState(false);
   console.log("style", modernSelectStyle);
   const rowsPerPage = 4;
 
@@ -576,8 +578,12 @@ export default function QueryBuilder() {
       //   setOpenDialog(false);
       // } 
       if (result.reactCode) {
-        setCustomHtml(result.reactCode);
-        setShowHtmlView(true);   // ← auto-expand the view
+        // setCustomHtml(result.reactCode);
+        // setShowHtmlView(true);   // ← auto-expand the view
+        // setOpenDialog(false);
+        setCustomHtml(result.reactCode);   // Option 1 — HTML iframe
+        setCustomJson(null);               // clear old JSON view
+        setShowHtmlView(true);             // default to HTML view
         setOpenDialog(false);
       }else {
         console.error("reactCode missing in response. Keys:", Object.keys(result));
@@ -592,6 +598,45 @@ export default function QueryBuilder() {
     }
   };
 
+
+  const handleSubmitAsJson = async () => {
+  if (!formValue.trim()) {
+    setPromptErrorMsg("Please enter details");
+    return;
+  }
+  setPromptErrorMsg("");
+  setVizLoading(true);
+
+  try {
+    const response = await fetch("http://localhost:8282/get-react-code-as-json", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        schemaName: selectedSchema,
+        query: generatedQuery,
+        textQue: formValue,
+        dbJsonData: queryResult
+      })
+    });
+
+    const result = await response.json();
+    console.log("JSON viz result:", result);
+
+    if (result && result.chartType) {
+      setCustomJson(result);     // Option 2 — JSON chart
+      setCustomHtml("");         // clear old HTML
+      setShowHtmlView(false);    // switch to JSON view
+      setOpenDialog(false);
+    } else {
+      setPromptErrorMsg("Could not generate chart. Try Option 1.");
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    setPromptErrorMsg("Failed to generate visualization.");
+  } finally {
+    setVizLoading(false);
+  }
+};
 //   const handleAISuggestionClick = async (suggestion) => {
 //   console.log("AI Suggestion Clicked:", suggestion);
 
@@ -2164,7 +2209,7 @@ const fetchAiSuggestions = async () => {
 )}
 
     {/* ================= PROMPT MODE ================= */}
-    {analysisMode === "prompt" && (
+    {/* {analysisMode === "prompt" && (
       <>
         <TextField
           fullWidth
@@ -2190,8 +2235,50 @@ const fetchAiSuggestions = async () => {
 
         {aiPromotLoading && <LinearProgress sx={{ mt: 2 }} />}
       </>
-    )}
+    )} */}
 
+{analysisMode === "prompt" && (
+  <>
+    <TextField
+      fullWidth
+      label="Enter your analysis request"
+      value={formValue}
+      onChange={(e) => setFormValue(e.target.value)}
+      sx={{ mt: 2 }}
+    />
+
+    {/* Two generate buttons — one per option */}
+    <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+      <Button
+        variant="contained"
+        fullWidth
+        sx={{
+          borderRadius: 3, textTransform: "none",
+          fontWeight: 600, backgroundColor: "#1976d2"
+        }}
+        onClick={handleSubmit}
+        startIcon={aiPromotLoading ? <CircularProgress size={16} sx={{ color: "#fff" }} /> : null}
+      >
+        {aiPromotLoading ? "Generating..." : "🖥 HTML View"}
+      </Button>
+
+      <Button
+        variant="contained"
+        fullWidth
+        sx={{
+          borderRadius: 3, textTransform: "none",
+          fontWeight: 600, backgroundColor: "#7c3aed"
+        }}
+        onClick={handleSubmitAsJson}
+        startIcon={vizLoading ? <CircularProgress size={16} sx={{ color: "#fff" }} /> : null}
+      >
+        {vizLoading ? "Generating..." : "📊 Chart View"}
+      </Button>
+    </Box>
+
+    {(aiPromotLoading || vizLoading) && <LinearProgress sx={{ mt: 2 }} />}
+  </>
+)}
     {promptErrorMsg && (
       <Typography color="error" sx={{ mt: 2 }}>
         {promptErrorMsg}
@@ -2332,8 +2419,8 @@ const fetchAiSuggestions = async () => {
 
 
         </Paper>
-        {/* ── Custom AI HTML View ── */}
-          {customHtml && (
+        {/* ══ VISUALIZATION PANEL — shows after Generate ══ */}
+          {(customHtml || customJson) && (
             <Box mt={3}>
               <Paper
                 elevation={0}
@@ -2344,43 +2431,73 @@ const fetchAiSuggestions = async () => {
                   border: "1px solid rgba(255,255,255,0.3)"
                 }}
               >
-                {/* Header bar */}
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    px: 3,
-                    py: 1.5,
-                    background: "linear-gradient(90deg, #1976d2, #42a5f5)",
-                    cursor: "pointer"
-                  }}
-                  onClick={() => setShowHtmlView(!showHtmlView)}
-                >
-                  <Typography
-                    sx={{ color: "#fff", fontWeight: 700, fontSize: "0.95rem" }}
-                  >
-                    🤖 AI Generated Visualization
+                {/* Header + Toggle */}
+                <Box sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  px: 3, py: 1.5,
+                  background: "linear-gradient(90deg, #1976d2, #42a5f5)"
+                }}>
+                  <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: "0.95rem" }}>
+                    🤖 AI Visualization
                   </Typography>
-                  <Typography sx={{ color: "#fff", fontSize: "0.85rem" }}>
-                    {showHtmlView ? "▲ Hide" : "▼ Show"}
-                  </Typography>
+
+                  {/* Toggle only if BOTH options have data */}
+                  {customHtml && customJson && (
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      <Button
+                        size="small"
+                        variant={showHtmlView ? "contained" : "outlined"}
+                        onClick={() => setShowHtmlView(true)}
+                        sx={{
+                          borderRadius: 2, textTransform: "none",
+                          fontSize: "0.75rem",
+                          backgroundColor: showHtmlView ? "#fff" : "transparent",
+                          color: showHtmlView ? "#1976d2" : "#fff",
+                          borderColor: "#fff",
+                          "&:hover": { backgroundColor: "#e3f2fd", color: "#1976d2" }
+                        }}
+                      >
+                        🖥 HTML
+                      </Button>
+                      <Button
+                        size="small"
+                        variant={!showHtmlView ? "contained" : "outlined"}
+                        onClick={() => setShowHtmlView(false)}
+                        sx={{
+                          borderRadius: 2, textTransform: "none",
+                          fontSize: "0.75rem",
+                          backgroundColor: !showHtmlView ? "#fff" : "transparent",
+                          color: !showHtmlView ? "#7c3aed" : "#fff",
+                          borderColor: "#fff",
+                          "&:hover": { backgroundColor: "#ede9fe", color: "#7c3aed" }
+                        }}
+                      >
+                        📊 Chart
+                      </Button>
+                    </Box>
+                  )}
                 </Box>
 
-                {/* iframe */}
-                {showHtmlView && (
+                {/* Option 1 — HTML iframe */}
+                {showHtmlView && customHtml && (
                   <Box sx={{ width: "100%", height: 520 }}>
                     <iframe
                       srcDoc={customHtml}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        border: "none"
-                      }}
-                      title="AI Visualization"
+                      style={{ width: "100%", height: "100%", border: "none" }}
+                      title="AI HTML Visualization"
                     />
                   </Box>
                 )}
+
+                {/* Option 2 — JSON Chart via ChartRenderer */}
+                {!showHtmlView && customJson && (
+                  <Box sx={{ p: 3 }}>
+                    <ChartRenderer config={customJson} />
+                  </Box>
+                )}
+
               </Paper>
             </Box>
           )}
