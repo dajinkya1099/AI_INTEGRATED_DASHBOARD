@@ -42,18 +42,29 @@ def home():
 def schemas():
     cache_key = "all_schemas"
 
-    cached_data = r.get(cache_key)
-    if cached_data:
-        print("Returning all_schemas from cache")
-        return {
-            "schemas": json.loads(cached_data),
-            "source": "cache"
-        }
+    # Try reading from Redis cache
+    if r:
+        try:
+            cached_data = r.get(cache_key)
+            if cached_data:
+                print("Returning all_schemas from cache")
+                return {
+                    "schemas": json.loads(cached_data),
+                    "source": "cache"
+                }
+        except Exception:
+            print("Redis not available")
 
+    # Fetch from database
     print("Fetching all_schemas from DB")
     schemaName = get_user_schema_names()
 
-    r.set(cache_key, json.dumps(schemaName), ex=300)
+    # Store in Redis cache
+    if r:
+        try:
+            r.set(cache_key, json.dumps(schemaName), ex=300)
+        except Exception:
+            pass
 
     return {
         "schemas": schemaName,
@@ -66,19 +77,27 @@ def get_schema(schemaName: str):
 
     cache_key = f"schema:{schemaName}"
 
-    # 1️⃣ Try to get from Redis
-    cached_schema = r.get(cache_key)
-    if cached_schema:
-        print("Returning schema from cache")
-        return json.loads(cached_schema)
+    # Try to get from Redis
+    if r:
+        try:
+            cached_schema = r.get(cache_key)
+            if cached_schema:
+                print("Returning schema from cache")
+                return json.loads(cached_schema)
+        except Exception as e:
+            print("Redis read error:", e)
 
-    # 2️⃣ If not cached → compute
+    # If not cached → compute
     print("Returning schema from db")
     schema = parse_schema_text(schemaName)
     print("schema ", schema)
 
-    # 3️⃣ Store in Redis (10 minutes = 600 sec)
-    r.set(cache_key, json.dumps(schema), ex=600)
+    # Store in Redis (10 minutes = 600 sec)
+    if r:
+        try:
+            r.set(cache_key, json.dumps(schema), ex=600)
+        except Exception as e:
+            print("Redis write error:", e)
 
     return schema
 
