@@ -1899,3 +1899,103 @@ def _html_empty(title):
         f"h2{{color:#1e293b;margin-bottom:8px;}}p{{color:#64748b;}}</style></head>"
         f"<body><div class='box'><h2>No Data</h2><p>{title}</p></div></body></html>"
     )
+
+
+def generate_visualization_as_json(request: QueryRequest) -> dict:
+    """
+    Option 2 — Same agent pipeline as generate_react_visualization()
+    BUT returns JSON instead of HTML reactCode.
+
+    Returns a ChartRenderer-compatible config:
+    {
+      chartType: "bar" | "pie" | "line" | "area" | "table" | "text" | "card"
+      title:     "chart title"
+      xKey:      "column name for X axis"
+      yKey:      "column name for Y axis"
+      data:      [ ... chart-ready data array ... ]
+      rowCount:  N
+    }
+    """
+    # Parse data
+    if isinstance(request.dbJsonData, str):
+        try:    db_data = json.loads(request.dbJsonData)
+        except: raise HTTPException(400, "Invalid JSON in dbJsonData")
+    else:
+        db_data = request.dbJsonData
+
+    rows = db_data.get("rows", []) if isinstance(db_data, dict) else db_data
+    if not rows:
+        raise HTTPException(400, "No data rows provided")
+
+    # Reuse full agent pipeline to get structured result
+    state = AgentState(
+        question    = request.textQue,
+        schema_name = request.schemaName,
+        rows        = rows,
+        query       = request.query,
+    )
+
+    # Route → analyze → get structured data (skip HTML generation)
+    tool_1_route(state)
+
+    if state.strategy == Strategy.CACHE_HIT:
+        cached = _cache_get(state.cache_key)
+        if cached and "structured" in cached:
+            s = cached["structured"]
+            return _structured_to_json(s, rows)
+
+    if state.strategy == Strategy.PYTHON_ONLY:
+        tool_2_python_analyze(state)
+    else:
+        tool_3_ollama_intent(state)
+
+    return _structured_to_json(state.structured, rows)
+
+
+def _structured_to_json(s: dict, rows: list) -> dict:
+    """
+    Convert the agent's structured result into a ChartRenderer-compatible JSON config.
+    """
+    chart_type = s.get("viz_type", "bar")
+    data       = s.get("data", [])
+    x_key      = s.get("x_key")
+    y_key      = s.get("y_key")
+    title      = s.get("title", "Chart")
+    subtitle   = s.get("subtitle", "")
+
+    # For table — clean sensitive columns
+    if chart_type == "table" and data:
+        exclude = ("password", "token", "bank_account", "account_number",
+                   "bank_no", "bank_account_number")
+        all_keys  = list(data[0].keys())
+        keep_keys = [k for k in all_keys
+                     if not any(ex in k.lower() for ex in exclude)
+                     and not (k.lower().endswith("_id") and k.lower() != "id")]
+        data = [{k: r.get(k) for k in keep_keys} for r in data]
+
+    # For text/card — ensure metric/value format
+    if chart_type in ("text", "card") and data:
+        # Already in {metric, value} format from _compute_summary
+        pass
+
+    # Determine actual xKey/yKey from data if missing
+    if data and not x_key:
+        first = data[0]
+        str_keys = [k for k, v in first.items() if isinstance(v, str)]
+        x_key = str_keys[0] if str_keys else list(first.keys())[0]
+
+    if data and not y_key:
+        first = data[0]
+        num_keys = [k for k, v in first.items()
+                    if isinstance(v, (int, float)) and k != x_key]
+        y_key = num_keys[0] if num_keys else list(first.keys())[-1]
+
+    return {
+        "chartType": chart_type,
+        "title":     title,
+        "subtitle":  subtitle,
+        "xKey":      x_key,
+        "yKey":      y_key,
+        "data":      data,
+        "rowCount":  len(data),
+    }

@@ -9,12 +9,14 @@ from app.schema_generator import execute_sql_get_db_data_by_schemaName_query,par
 # from app.visualization_servie  import generate_react_visualization
 # from app.visualization_service_with_cache  import generate_react_visualization
 # from app.visualization_agent import generate_react_visualization
-from app.viz_agent import generate_react_visualization
+from app.viz_agent import generate_react_visualization, generate_visualization_as_json
+
+
 
 import time
 
 
-from app.react_code_generator_agent import generate_react_visualization
+# from app.react_code_generator_agent import generate_react_visualization
 import json
 # from app.ai_suggestions import build_prompt_for_ai_suggestions,ollama_model_call_for_ai_suggestions,apply_ai_suggestions
 from app.ai_suggestions_update import build_prompt_for_ai_suggestions, apply_ai_suggestions,ollama_model_call_for_ai_suggestions
@@ -35,7 +37,6 @@ app.add_middleware(
 @app.get("/")
 def home():
     return {"message": "HRMS AI SQL Engine Running on 8282"}
-
 
 
 @app.get("/schemas")
@@ -67,12 +68,11 @@ def schemas():
             pass
 
     return {
-        "schemas": schemaName,
-        "source": "database"
+        "schemas": schemaName
     }
 
 @app.get("/get-schema-by-schemaName")
-def get_schema(schemaName: str):
+def get_schema(schemaName : str):
     print("method for get schema for given schema name")
 
     cache_key = f"schema:{schemaName}"
@@ -100,7 +100,6 @@ def get_schema(schemaName: str):
             print("Redis write error:", e)
 
     return schema
-
 
 class QueryRequest(BaseModel):  
     schemaName: str
@@ -193,6 +192,12 @@ def get_ai_suggestions(request: QueryRequest):
         print("JSON Parse Error:", e)
         print("AI response was invalid JSON:", ai_response)
         return {"suggestions": []}
+
+
+@app.post("/get-react-code-as-json")
+def get_react_code_as_json(request: QueryRequest):
+    return generate_visualization_as_json(request)       
+
     
     
 def get_expensive_dashboard_data():
@@ -211,4 +216,5 @@ def dashboard():
     r.set(cache_key, str(data), ex=300)
     
     return {"data": data, "source": "computed"}
+
   
