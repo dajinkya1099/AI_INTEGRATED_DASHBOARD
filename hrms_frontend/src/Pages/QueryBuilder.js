@@ -258,6 +258,7 @@ export default function QueryBuilder() {
 
   const generateQuery = () => {
     if (!selectedTable) return;
+    setCustomHtml("")
 
     let selectClause =
       selectedColumns.length > 0
@@ -538,13 +539,14 @@ export default function QueryBuilder() {
       setPromptErrorMsg("Please enter details");
       return;
     }
-  setPromptErrorMsg("");
+    setCustomHtml("")
+    setPromptErrorMsg("");
     localStorage.removeItem("generatedReactCode");
     localStorage.removeItem("generatedMeta");
-    
+
 
     try {
-        setAiPromptLoading(true);
+      setAiPromptLoading(true);
       const response = await fetch("http://localhost:8282/get-react-code-using-ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -585,7 +587,7 @@ export default function QueryBuilder() {
         setCustomJson(null);               // clear old JSON view
         setShowHtmlView(true);             // default to HTML view
         setOpenDialog(false);
-      }else {
+      } else {
         console.error("reactCode missing in response. Keys:", Object.keys(result));
       }
 
@@ -594,7 +596,7 @@ export default function QueryBuilder() {
       setPromptErrorMsg("Unable to generate AI insights. Please try again.");
     } finally {
       setAiPromptLoading(false);
-      
+
     }
   };
 
@@ -639,315 +641,318 @@ export default function QueryBuilder() {
 };
 //   const handleAISuggestionClick = async (suggestion) => {
 //   console.log("AI Suggestion Clicked:", suggestion);
+  //   const handleAISuggestionClick = async (suggestion) => {
+  //   console.log("AI Suggestion Clicked:", suggestion);
 
-//   if (!selectedSchema) {
-//     setErrorMsg("Please select schema.");
-//     return;
-//   }
+  //   if (!selectedSchema) {
+  //     setErrorMsg("Please select schema.");
+  //     return;
+  //   }
 
-// // Open new tab AFTER data is ready
-//     const newTab = window.open("/ai-response", "_blank");
+  // // Open new tab AFTER data is ready
+  //     const newTab = window.open("/ai-response", "_blank");
 
-//     if (!newTab) {
-//       window.location.href = "/ai-response";
-//     }
+  //     if (!newTab) {
+  //       window.location.href = "/ai-response";
+  //     }
 
-//   try {
-//     setAiPromptLoading(true);
+  //   try {
+  //     setAiPromptLoading(true);
 
-//     const res = await fetch(
-//       "http://localhost:8282/get-db-level-data-by-textQue",
-//       {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({
-//           schemaName: selectedSchema,
-//           query: "",
-//           textQue: suggestion.title,   // ✅ pass suggestion as question
-//           dbJsonData: schemaData || {}
-//         })
-//       }
-//     );
+  //     const res = await fetch(
+  //       "http://localhost:8282/get-db-level-data-by-textQue",
+  //       {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({
+  //           schemaName: selectedSchema,
+  //           query: "",
+  //           textQue: suggestion.title,   // ✅ pass suggestion as question
+  //           dbJsonData: schemaData || {}
+  //         })
+  //       }
+  //     );
 
-//     const data = await res.json();
+  //     const data = await res.json();
 
-//     console.log("Suggestion Response:", data);
+  //     console.log("Suggestion Response:", data);
 
-//     const rows = data?.data?.rows || [];
-//     const cleanSql = (data?.sql || "")
-//       .replace(/```sql|```/g, "")
-//       .trim();
+  //     const rows = data?.data?.rows || [];
+  //     const cleanSql = (data?.sql || "")
+  //       .replace(/```sql|```/g, "")
+  //       .trim();
 
-//     // Save generated SQL if needed
-//     setGeneratedQuery(cleanSql);
+  //     // Save generated SQL if needed
+  //     setGeneratedQuery(cleanSql);
 
-//     let processedData = [...rows];
+  //     let processedData = [...rows];
 
-//     // Sorting
-//     if (suggestion.sortBy) {
-//       processedData = processedData.sort((a, b) =>
-//         suggestion.order === "asc"
-//           ? a[suggestion.sortBy] - b[suggestion.sortBy]
-//           : b[suggestion.sortBy] - a[suggestion.sortBy]
-//       );
-//     }
+  //     // Sorting
+  //     if (suggestion.sortBy) {
+  //       processedData = processedData.sort((a, b) =>
+  //         suggestion.order === "asc"
+  //           ? a[suggestion.sortBy] - b[suggestion.sortBy]
+  //           : b[suggestion.sortBy] - a[suggestion.sortBy]
+  //       );
+  //     }
 
-//     // Limit
-//     if (suggestion.limit) {
-//       processedData = processedData.slice(0, suggestion.limit);
-//     }
-// console.log("processedData:", processedData);
-//     // Save structured config properly
-//     localStorage.setItem(
-//       "aiConfig",
-//       JSON.stringify({ suggestions: [suggestion] })
-//     );
+  //     // Limit
+  //     if (suggestion.limit) {
+  //       processedData = processedData.slice(0, suggestion.limit);
+  //     }
+  // console.log("processedData:", processedData);
+  //     // Save structured config properly
+  //     localStorage.setItem(
+  //       "aiConfig",
+  //       JSON.stringify({ suggestions: [suggestion] })
+  //     );
 
-//     localStorage.setItem(
-//       "aiChartData",
-//       JSON.stringify(processedData)
-//     );
-
-    
-
-//   } catch (err) {
-//     console.error("Error:", err);
-//   } finally {
-//     setAiPromptLoading(false);
-//     setOpenDialog(false);
-//   }
-// };
-
-// const handleAISuggestionClick = async (suggestion) => {
-//   console.log("AI Suggestion Clicked:", suggestion);
-
-//   if (!selectedSchema) {
-//     setErrorMsg("Please select schema.");
-//     return;
-//   }
-
-//   // ✅ 1. Open blank tab immediately (sync)
-//   const newTab = window.open("", "_blank");
-
-//   try {
-//     setAiPromptLoading(true);
-
-//     const res = await fetch(
-//       "http://localhost:8282/get-db-level-data-by-textQue",
-//       {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({
-//           schemaName: selectedSchema,
-//           query: "",
-//           textQue: suggestion.title,
-//           dbJsonData: schemaData || {}
-//         })
-//       }
-//     );
-
-//     const data = await res.json();
-//     const rows = data?.data?.rows || [];
-
-//     let processedData = [...rows];
-
-//     if (suggestion.sortBy) {
-//       processedData = processedData.sort((a, b) =>
-//         suggestion.order === "asc"
-//           ? a[suggestion.sortBy] - b[suggestion.sortBy]
-//           : b[suggestion.sortBy] - a[suggestion.sortBy]
-//       );
-//     }
-
-//     if (suggestion.limit) {
-//       processedData = processedData.slice(0, suggestion.limit);
-//     }
-
-//     // ✅ Save new data
-//     localStorage.setItem(
-//       "aiConfig",
-//       JSON.stringify({ suggestions: [suggestion] })
-//     );
-
-//     localStorage.setItem(
-//       "aiChartData",
-//       JSON.stringify(processedData)
-//     );
-
-//     // ✅ Now redirect that already opened tab
-//     if (newTab) {
-//       newTab.location.href = "/ai-response";
-//     }
-
-//   } catch (err) {
-//     console.error("Error:", err);
-
-//     if (newTab) newTab.close(); // close empty tab on error
-//   } finally {
-//     setAiPromptLoading(false);
-//     setOpenDialog(false);
-//   }
-// };
-
-// const handleAISuggestionClick = async (suggestion) => {
-//   if (!selectedSchema) {
-//     setErrorMsg("Please select schema.");
-//     return;
-//   }
-
-//   // ✅ Open tab immediately (allowed by browser)
-//   const newTab = window.open("/ai-response", "_blank");
-
-//   try {
-//     setAiPromptLoading(true);
-
-//     const res = await fetch(
-//       "http://localhost:8282/get-db-level-data-by-textQue",
-//       {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({
-//           schemaName: selectedSchema,
-//           query: "",
-//           textQue: suggestion.title,
-//           dbJsonData: schemaData || {}
-//         })
-//       }
-//     );
-
-//     const result = await res.json();
-//     const rows = result?.data?.rows || [];
-
-//     let processedData = [...rows];
-
-//     if (suggestion.limit) {
-//       processedData = processedData.slice(0, suggestion.limit);
-//     }
-
-//     // ✅ Send data to new tab
-//     newTab.postMessage(
-//       {
-//         config: { suggestions: [suggestion] },
-//         data: processedData
-//       },
-//       window.location.origin
-//     );
-
-//   } catch (err) {
-//     console.error(err);
-//     newTab?.postMessage({ error: true }, window.location.origin);
-//   } finally {
-//     setAiPromptLoading(false);
-//   }
-// };
-
-// const handleAISuggestionClick = (suggestion) => {
-//   if (!suggestion || Object.keys(suggestion).length === 0) {
-//     console.warn("No suggestion to process");
-//     return;
-//   }
-// console.log("suggestion :",suggestion);
-
-//   // Open new tab immediately
-//   const newTab = window.open("/ai-response", "_blank");
-
-//   // Check if tab opened
-//   if (!newTab) {
-//     console.error("Unable to open new tab. Popup blocked?");
-//     return;
-//   }
-
-//   try {
-//     // Since we are not calling backend, just send suggestion itself
-//     newTab.postMessage(
-//       {
-//         configs: suggestion.suggestions ? suggestion.suggestions : [suggestion],
-//         error: false
-//       },
-//       window.location.origin
-//     );
-//   } catch (err) {
-//     console.error("Error sending suggestion to new tab:", err);
-//     newTab.postMessage({ error: true }, window.location.origin);
-//   }
-// };
+  //     localStorage.setItem(
+  //       "aiChartData",
+  //       JSON.stringify(processedData)
+  //     );
 
 
-const handleAISuggestionClick = (suggestion) => {
-  if (!suggestion || Object.keys(suggestion).length === 0) {
-    console.warn("No suggestion to process");
-    return;
-  }
 
-  const newTab = window.open("/ai-response", "_blank");
+  //   } catch (err) {
+  //     console.error("Error:", err);
+  //   } finally {
+  //     setAiPromptLoading(false);
+  //     setOpenDialog(false);
+  //   }
+  // };
 
-  if (!newTab) {
-    console.error("Popup blocked");
-    return;
-  }
+  // const handleAISuggestionClick = async (suggestion) => {
+  //   console.log("AI Suggestion Clicked:", suggestion);
 
-  // ✅ Wait until new tab loads
-  const sendMessage = () => {
-    newTab.postMessage(
-      {
-        configs: suggestion.suggestions
-          ? suggestion.suggestions
-          : [suggestion],
-        error: false
-      },
-      window.location.origin
-    );
-  };
+  //   if (!selectedSchema) {
+  //     setErrorMsg("Please select schema.");
+  //     return;
+  //   }
 
-  // Important: wait for load
-  newTab.onload = sendMessage;
+  //   // ✅ 1. Open blank tab immediately (sync)
+  //   const newTab = window.open("", "_blank");
 
-  // Fallback safety (sometimes onload not reliable)
-  setTimeout(sendMessage, 500);
-};
+  //   try {
+  //     setAiPromptLoading(true);
 
-const fetchAiSuggestions = async () => {
-  try {
-    localStorage.removeItem("aiConfig");
-    localStorage.removeItem("aiChartData");
-    setAiPromptLoading(true);
-    setPromptErrorMsg("");
+  //     const res = await fetch(
+  //       "http://localhost:8282/get-db-level-data-by-textQue",
+  //       {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({
+  //           schemaName: selectedSchema,
+  //           query: "",
+  //           textQue: suggestion.title,
+  //           dbJsonData: schemaData || {}
+  //         })
+  //       }
+  //     );
 
-    const response = await fetch("http://localhost:8282/get-ai-suggestions", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-  schemaName: selectedSchema || "",
-  query: generatedQuery || "",
-  textQue: "",
-  dbJsonData: queryResult || []
-})
-});
+  //     const data = await res.json();
+  //     const rows = data?.data?.rows || [];
 
-    const result = await response.json();
+  //     let processedData = [...rows];
 
-    // if (result.suggestions) {
-    //   setAiSuggestions(result.suggestions);
-    // } 
-    // to this:
-    if (Array.isArray(result) && result.length > 0) {
-      setSuggestions(result);   // ← feeds AISuggestions component
-  }else {
-      setPromptErrorMsg("No suggestions received.");
+  //     if (suggestion.sortBy) {
+  //       processedData = processedData.sort((a, b) =>
+  //         suggestion.order === "asc"
+  //           ? a[suggestion.sortBy] - b[suggestion.sortBy]
+  //           : b[suggestion.sortBy] - a[suggestion.sortBy]
+  //       );
+  //     }
+
+  //     if (suggestion.limit) {
+  //       processedData = processedData.slice(0, suggestion.limit);
+  //     }
+
+  //     // ✅ Save new data
+  //     localStorage.setItem(
+  //       "aiConfig",
+  //       JSON.stringify({ suggestions: [suggestion] })
+  //     );
+
+  //     localStorage.setItem(
+  //       "aiChartData",
+  //       JSON.stringify(processedData)
+  //     );
+
+  //     // ✅ Now redirect that already opened tab
+  //     if (newTab) {
+  //       newTab.location.href = "/ai-response";
+  //     }
+
+  //   } catch (err) {
+  //     console.error("Error:", err);
+
+  //     if (newTab) newTab.close(); // close empty tab on error
+  //   } finally {
+  //     setAiPromptLoading(false);
+  //     setOpenDialog(false);
+  //   }
+  // };
+
+  // const handleAISuggestionClick = async (suggestion) => {
+  //   if (!selectedSchema) {
+  //     setErrorMsg("Please select schema.");
+  //     return;
+  //   }
+
+  //   // ✅ Open tab immediately (allowed by browser)
+  //   const newTab = window.open("/ai-response", "_blank");
+
+  //   try {
+  //     setAiPromptLoading(true);
+
+  //     const res = await fetch(
+  //       "http://localhost:8282/get-db-level-data-by-textQue",
+  //       {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({
+  //           schemaName: selectedSchema,
+  //           query: "",
+  //           textQue: suggestion.title,
+  //           dbJsonData: schemaData || {}
+  //         })
+  //       }
+  //     );
+
+  //     const result = await res.json();
+  //     const rows = result?.data?.rows || [];
+
+  //     let processedData = [...rows];
+
+  //     if (suggestion.limit) {
+  //       processedData = processedData.slice(0, suggestion.limit);
+  //     }
+
+  //     // ✅ Send data to new tab
+  //     newTab.postMessage(
+  //       {
+  //         config: { suggestions: [suggestion] },
+  //         data: processedData
+  //       },
+  //       window.location.origin
+  //     );
+
+  //   } catch (err) {
+  //     console.error(err);
+  //     newTab?.postMessage({ error: true }, window.location.origin);
+  //   } finally {
+  //     setAiPromptLoading(false);
+  //   }
+  // };
+
+  // const handleAISuggestionClick = (suggestion) => {
+  //   if (!suggestion || Object.keys(suggestion).length === 0) {
+  //     console.warn("No suggestion to process");
+  //     return;
+  //   }
+  // console.log("suggestion :",suggestion);
+
+  //   // Open new tab immediately
+  //   const newTab = window.open("/ai-response", "_blank");
+
+  //   // Check if tab opened
+  //   if (!newTab) {
+  //     console.error("Unable to open new tab. Popup blocked?");
+  //     return;
+  //   }
+
+  //   try {
+  //     // Since we are not calling backend, just send suggestion itself
+  //     newTab.postMessage(
+  //       {
+  //         configs: suggestion.suggestions ? suggestion.suggestions : [suggestion],
+  //         error: false
+  //       },
+  //       window.location.origin
+  //     );
+  //   } catch (err) {
+  //     console.error("Error sending suggestion to new tab:", err);
+  //     newTab.postMessage({ error: true }, window.location.origin);
+  //   }
+  // };
+
+
+  const handleAISuggestionClick = (suggestion) => {
+    if (!suggestion || Object.keys(suggestion).length === 0) {
+      console.warn("No suggestion to process");
+      return;
     }
 
-  } catch (error) {
-    setPromptErrorMsg("Failed to fetch AI suggestions.");
-  } finally {
-    setAiPromptLoading(false);
-  }
-};
+    const newTab = window.open("/ai-response", "_blank");
+
+    if (!newTab) {
+      console.error("Popup blocked");
+      return;
+    }
+
+    // ✅ Wait until new tab loads
+    const sendMessage = () => {
+      newTab.postMessage(
+        {
+          configs: suggestion.suggestions
+            ? suggestion.suggestions
+            : [suggestion],
+          error: false
+        },
+        window.location.origin
+      );
+    };
+
+    // Important: wait for load
+    newTab.onload = sendMessage;
+
+    // Fallback safety (sometimes onload not reliable)
+    setTimeout(sendMessage, 500);
+  };
+
+  const fetchAiSuggestions = async () => {
+    try {
+      localStorage.removeItem("aiConfig");
+      localStorage.removeItem("aiChartData");
+      setAiPromptLoading(true);
+      setPromptErrorMsg("");
+      setCustomHtml("")
+
+      const response = await fetch("http://localhost:8282/get-ai-suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schemaName: selectedSchema || "",
+          query: generatedQuery || "",
+          textQue: "",
+          dbJsonData: queryResult || []
+        })
+      });
+
+      const result = await response.json();
+      console.log("result suggestion::",result)
+      // if (result.suggestions) {
+      //   setAiSuggestions(result.suggestions);
+      // } 
+      // to this:
+      if (Array.isArray(result) && result.length > 0) {
+        setSuggestions(result);   // ← feeds AISuggestions component
+      } else {
+        setPromptErrorMsg("No suggestions received.");
+      }
+
+    } catch (error) {
+      setPromptErrorMsg("Failed to fetch AI suggestions.");
+    } finally {
+      setAiPromptLoading(false);
+    }
+  };
   /* ================= UI ================= */
 
   return (
     <Box
       sx={{
-        height: "100vh",
+        minHeight: "100vh",
         pb: "100px",
         width: "100%",
         display: "flex",
@@ -1132,6 +1137,7 @@ const fetchAiSuggestions = async () => {
                     boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
                   }}
                   onClick={async () => {
+                    setCustomHtml("")
                     if (!selectedSchema) {
                       setErrorMsg("Please select schema.");
                       return;
@@ -2049,20 +2055,78 @@ const fetchAiSuggestions = async () => {
                 left: 0,
                 width: "100%",
                 height: "100%",
-                backdropFilter: "blur(4px)",
-                backgroundColor: "rgba(255,255,255,0.6)",
+                backdropFilter: "blur(8px)",
+                background: "linear-gradient(135deg, rgba(255, 255, 255, 0), rgba(240, 240, 255, 0))",
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
-                zIndex: 2000
+                zIndex: 2000,
+                animation: "fadeIn 0.3s ease-in-out"
               }}
             >
-              <Box textAlign="center">
-                <CircularProgress size={60} />
-                <Typography sx={{ mt: 2 }}>
-                  AI analysing your request...
+              <Box
+                sx={{
+                  padding: "40px 60px",
+                  borderRadius: "20px",
+                  background: "rgba(255, 255, 255, 0)",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
+                  textAlign: "center",
+                  backdropFilter: "blur(20px)",
+                  animation: "popIn 0.3s ease-out"
+                }}
+              >
+                {/* Gradient Circular Loader */}
+                <CircularProgress
+                  size={70}
+                  thickness={4}
+                  sx={{
+                    color: "#00E5FF",
+                    filter: "drop-shadow(0 0 8px rgba(0,229,255,0.6))"
+                  }}
+                />
+
+                <Typography
+                  sx={{
+                    mt: 3,
+                    fontWeight: 600,
+                    fontSize: "18px",
+                    background: "linear-gradient(90deg, #00E5FF, #2979FF)",
+                    textShadow: "0 0 12px rgba(0,229,255,0.6)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  AI analysing your request
+                  <span className="dots">...</span>
                 </Typography>
               </Box>
+
+              {/* Animations */}
+              <style>
+                {`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes popIn {
+          from { transform: scale(0.9); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+
+        .dots::after {
+          content: '';
+          animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+          0% { content: ''; }
+          33% { content: '.'; }
+          66% { content: '..'; }
+          100% { content: '...'; }
+        }
+      `}
+              </style>
             </Box>
           )}
 
@@ -2104,56 +2168,56 @@ const fetchAiSuggestions = async () => {
                   </IconButton>
                 </Tooltip>
 
-               <Dialog
-  open={openDialog}
-  onClose={() => {
-    setOpenDialog(false);
-    setAnalysisMode(null);
-    setAiSuggestions([]);
-    setPromptErrorMsg("");
-  }}
-  maxWidth="lg"
-  fullWidth
-  PaperProps={{
-    sx: {
-      borderRadius: "20px",
-      padding: "10px"
-    }
-  }}
->
-  <DialogTitle sx={{ fontWeight: 600 }}>
-    Generate AI Insights
-  </DialogTitle>
+                <Dialog
+                  open={openDialog}
+                  onClose={() => {
+                    setOpenDialog(false);
+                    setAnalysisMode(null);
+                    setAiSuggestions([]);
+                    setPromptErrorMsg("");
+                  }}
+                  maxWidth="lg"
+                  fullWidth
+                  PaperProps={{
+                    sx: {
+                      borderRadius: "20px",
+                      padding: "10px"
+                    }
+                  }}
+                >
+                  <DialogTitle sx={{ fontWeight: 600 }}>
+                    Generate AI Insights
+                  </DialogTitle>
 
-  <DialogContent>
+                  <DialogContent>
 
-    {/* ================= MODE SELECTION ================= */}
-    <Box sx={{ display: "flex", gap: 2, mb: 3, mt: 1 }}>
-      <Button
-        fullWidth
-        variant={analysisMode === "ai" ? "contained" : "outlined"}
-        onClick={() => {
-          setAnalysisMode("ai");
-          setPromptErrorMsg("");
-        }}
-      >
-        AI Suggested Insights
-      </Button>
+                    {/* ================= MODE SELECTION ================= */}
+                    <Box sx={{ display: "flex", gap: 2, mb: 3, mt: 1 }}>
+                      <Button
+                        fullWidth
+                        variant={analysisMode === "ai" ? "contained" : "outlined"}
+                        onClick={() => {
+                          setAnalysisMode("ai");
+                          setPromptErrorMsg("");
+                        }}
+                      >
+                        AI Suggested Insights
+                      </Button>
 
-      <Button
-        fullWidth
-        variant={analysisMode === "prompt" ? "contained" : "outlined"}
-        onClick={() => {
-          setAnalysisMode("prompt");
-          setPromptErrorMsg("");
-        }}
-      >
-        Custom Prompt
-      </Button>
-    </Box>
+                      <Button
+                        fullWidth
+                        variant={analysisMode === "prompt" ? "contained" : "outlined"}
+                        onClick={() => {
+                          setAnalysisMode("prompt");
+                          setPromptErrorMsg("");
+                        }}
+                      >
+                        Custom Prompt
+                      </Button>
+                    </Box>
 
-    {/* ================= AI MODE ================= */}
-    {/* {analysisMode === "ai" && (
+                    {/* ================= AI MODE ================= */}
+                    {/* {analysisMode === "ai" && (
       <>
         <Button
           variant="contained"
@@ -2183,117 +2247,65 @@ const fetchAiSuggestions = async () => {
       </>
     )} */}
 
-    {analysisMode === "ai" && (
-  <>
-    <Button
-      variant="contained"
-      fullWidth
-      sx={{ borderRadius: 3,
-              textTransform: "none",
-              fontWeight: 600,
-              boxShadow: "0 4px 14px rgba(0,0,0,0.15)"}}
-      onClick={fetchAiSuggestions}
-    >
-      Generate Suggestions
-    </Button>
+                    {analysisMode === "ai" && (
+                      <>
+                        <Button
+                          variant="contained"
+                          fullWidth
+                          sx={{
+                            borderRadius: 3,
+                            textTransform: "none",
+                            fontWeight: 600,
+                            boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
+                          }}
+                          onClick={fetchAiSuggestions}
+                        >
+                          Generate Suggestions
+                        </Button>
 
-    {aiPromotLoading && <LinearProgress sx={{ mt: 2 }} />}
+                        {aiPromotLoading && <LinearProgress sx={{ mt: 2 }} />}
 
-    {/* NEW — show suggestion cards + chart inline */}
-    {suggestions.length > 0 && (
-      <Box sx={{ mt: 2 }}>
-        <AISuggestions suggestions={suggestions} loading={aiPromotLoading} />
-      </Box>
-    )}
-  </>
-)}
+                        {/* NEW — show suggestion cards + chart inline */}
+                        {suggestions.length > 0 && (
+                          <Box sx={{ mt: 2 }}>
+                            <AISuggestions suggestions={suggestions} loading={aiPromotLoading} />
+                          </Box>
+                        )}
+                      </>
+                    )}
+ {/* Custom Prompt mode — TWO buttons: HTML + Chart */}
+                    {analysisMode === "prompt" && (
+                      <>
+                        <TextField fullWidth label="Enter your analysis request"
+                          value={formValue} onChange={(e) => setFormValue(e.target.value)} sx={{ mt: 2 }}
+                        />
+                        <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+                          <Button variant="contained" fullWidth
+                            sx={{ borderRadius: 3, textTransform: "none", fontWeight: 600, backgroundColor: "#1976d2" }}
+                            onClick={handleSubmit}
+                            startIcon={aiPromotLoading ? <CircularProgress size={16} sx={{ color: "#fff" }} /> : null}>
+                            {aiPromotLoading ? "Generating..." : "🖥 HTML View"}
+                          </Button>
+                          <Button variant="contained" fullWidth
+                            sx={{ borderRadius: 3, textTransform: "none", fontWeight: 600, backgroundColor: "#7c3aed" }}
+                            onClick={handleSubmitAsJson}
+                            startIcon={vizLoading ? <CircularProgress size={16} sx={{ color: "#fff" }} /> : null}>
+                            {vizLoading ? "Generating..." : "📊 Chart View"}
+                          </Button>
+                        </Box>
+                        {(aiPromotLoading || vizLoading) && <LinearProgress sx={{ mt: 2 }} />}
+                      </>
+                    )}
 
-    {/* ================= PROMPT MODE ================= */}
-    {/* {analysisMode === "prompt" && (
-      <>
-        <TextField
-          fullWidth
-          label="Enter your analysis request"
-          value={formValue}
-          onChange={(e) => setFormValue(e.target.value)}
-          sx={{ mt: 2 }}
-        />
+                    {promptErrorMsg && <Typography color="error" sx={{ mt: 2 }}>{promptErrorMsg}</Typography>}
+                  </DialogContent>
+                  <DialogActions>
+                    <Button variant="outlined" color="error"
+                      sx={{ borderRadius: 3, textTransform: "none", fontWeight: 600 }}
+                      onClick={() => setOpenDialog(false)}>Close</Button>
+                  </DialogActions>
+                </Dialog>
 
-        <Button
-          variant="contained"
-          fullWidth
-          sx={{ mt: 2 ,
-             borderRadius: 3,
-              textTransform: "none",
-              fontWeight: 600,
-              boxShadow: "0 4px 14px rgba(0,0,0,0.15)"
-          }}
-          onClick={handleSubmit}   // 🔥 YOUR EXISTING FUNCTION (UNCHANGED)
-        >
-          Generate
-        </Button>
-
-        {aiPromotLoading && <LinearProgress sx={{ mt: 2 }} />}
-      </>
-    )} */}
-
-{analysisMode === "prompt" && (
-  <>
-    <TextField
-      fullWidth
-      label="Enter your analysis request"
-      value={formValue}
-      onChange={(e) => setFormValue(e.target.value)}
-      sx={{ mt: 2 }}
-    />
-
-    {/* Two generate buttons — one per option */}
-    <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-      <Button
-        variant="contained"
-        fullWidth
-        sx={{
-          borderRadius: 3, textTransform: "none",
-          fontWeight: 600, backgroundColor: "#1976d2"
-        }}
-        onClick={handleSubmit}
-        startIcon={aiPromotLoading ? <CircularProgress size={16} sx={{ color: "#fff" }} /> : null}
-      >
-        {aiPromotLoading ? "Generating..." : "🖥 HTML View"}
-      </Button>
-
-      <Button
-        variant="contained"
-        fullWidth
-        sx={{
-          borderRadius: 3, textTransform: "none",
-          fontWeight: 600, backgroundColor: "#7c3aed"
-        }}
-        onClick={handleSubmitAsJson}
-        startIcon={vizLoading ? <CircularProgress size={16} sx={{ color: "#fff" }} /> : null}
-      >
-        {vizLoading ? "Generating..." : "📊 Chart View"}
-      </Button>
-    </Box>
-
-    {(aiPromotLoading || vizLoading) && <LinearProgress sx={{ mt: 2 }} />}
-  </>
-)}
-    {promptErrorMsg && (
-      <Typography color="error" sx={{ mt: 2 }}>
-        {promptErrorMsg}
-      </Typography>
-    )}
-
-  </DialogContent>
-
-  <DialogActions>
-    <Button variant="outlined"
-                color="error" sx={{borderRadius: 3,
-                  textTransform: "none",
-                  fontWeight: 600}} onClick={() => setOpenDialog(false)}>Close</Button>
-  </DialogActions>
-</Dialog>
 
                 <Button
                   variant="contained"
@@ -2419,95 +2431,54 @@ const fetchAiSuggestions = async () => {
 
 
         </Paper>
-        {/* ══ VISUALIZATION PANEL — shows after Generate ══ */}
-          {(customHtml || customJson) && (
-            <Box mt={3}>
-              <Paper
-                elevation={0}
-                sx={{
-                  borderRadius: 4,
-                  overflow: "hidden",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
-                  border: "1px solid rgba(255,255,255,0.3)"
-                }}
-              >
-                {/* Header + Toggle */}
-                <Box sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  px: 3, py: 1.5,
-                  background: "linear-gradient(90deg, #1976d2, #42a5f5)"
-                }}>
-                  <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: "0.95rem" }}>
-                    🤖 AI Visualization
-                  </Typography>
 
-                  {/* Toggle only if BOTH options have data */}
-                  {customHtml && customJson && (
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <Button
-                        size="small"
-                        variant={showHtmlView ? "contained" : "outlined"}
-                        onClick={() => setShowHtmlView(true)}
-                        sx={{
-                          borderRadius: 2, textTransform: "none",
-                          fontSize: "0.75rem",
-                          backgroundColor: showHtmlView ? "#fff" : "transparent",
-                          color: showHtmlView ? "#1976d2" : "#fff",
-                          borderColor: "#fff",
-                          "&:hover": { backgroundColor: "#e3f2fd", color: "#1976d2" }
-                        }}
-                      >
-                        🖥 HTML
-                      </Button>
-                      <Button
-                        size="small"
-                        variant={!showHtmlView ? "contained" : "outlined"}
-                        onClick={() => setShowHtmlView(false)}
-                        sx={{
-                          borderRadius: 2, textTransform: "none",
-                          fontSize: "0.75rem",
-                          backgroundColor: !showHtmlView ? "#fff" : "transparent",
-                          color: !showHtmlView ? "#7c3aed" : "#fff",
-                          borderColor: "#fff",
-                          "&:hover": { backgroundColor: "#ede9fe", color: "#7c3aed" }
-                        }}
-                      >
-                        📊 Chart
-                      </Button>
-                    </Box>
-                  )}
-                </Box>
+         {/* ══ VISUALIZATION PANEL — shows after Generate ══ */}
+        {(customHtml || customJson) && (
+          <Box mt={3}>
+            <Paper elevation={0} sx={{ borderRadius: 4, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.08)" }}>
+
+              {/* Header bar with toggle (only if both exist) */}
+              <Box sx={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                px: 3, py: 1.5, background: "linear-gradient(90deg, #1976d2, #42a5f5)"
+              }}>
+                <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: "0.95rem" }}>
+                  🤖 AI Visualization
+                </Typography>
+                {customHtml && customJson && (
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <Button size="small" onClick={() => setShowHtmlView(true)}
+                      sx={{ borderRadius: 2, textTransform: "none", fontSize: "0.75rem", backgroundColor: showHtmlView ? "#fff" : "transparent", color: showHtmlView ? "#1976d2" : "#fff", borderColor: "#fff", border: "1px solid #fff", "&:hover": { backgroundColor: "#e3f2fd", color: "#1976d2" } }}>
+                      🖥 HTML
+                    </Button>
+                    <Button size="small" onClick={() => setShowHtmlView(false)}
+                      sx={{ borderRadius: 2, textTransform: "none", fontSize: "0.75rem", backgroundColor: !showHtmlView ? "#fff" : "transparent", color: !showHtmlView ? "#7c3aed" : "#fff", borderColor: "#fff", border: "1px solid #fff", "&:hover": { backgroundColor: "#ede9fe", color: "#7c3aed" } }}>
+                      📊 Chart
+                    </Button>
+                  </Box>
+                )}
+              </Box>
 
                 {/* Option 1 — HTML iframe */}
-                {showHtmlView && customHtml && (
-                  <Box sx={{ width: "100%", height: 520 }}>
-                    <iframe
-                      srcDoc={customHtml}
-                      style={{ width: "100%", height: "100%", border: "none" }}
-                      title="AI HTML Visualization"
-                    />
-                  </Box>
-                )}
+              {showHtmlView && customHtml && (
+                <Box sx={{ width: "100%", height: 520 }}>
+                  <iframe srcDoc={customHtml} style={{ width: "100%", height: "100%", border: "none" }} title="AI HTML Visualization" />
+                </Box>
+              )}
 
-                {/* Option 2 — JSON Chart via ChartRenderer */}
-                {!showHtmlView && customJson && (
-                  <Box sx={{ p: 3 }}>
-                    <ChartRenderer config={customJson} />
-                  </Box>
-                )}
+              {/* Option 2 — JSON Chart via ChartRenderer */}
+              {!showHtmlView && customJson && (
+                <Box sx={{ p: 3 }}>
+                  <ChartRenderer config={customJson} />
+                </Box>
+              )}
 
-              </Paper>
-            </Box>
-          )}
+            </Paper>
+          </Box>
+        )}
       </Box>
-      <>
-        {/* Your page content */}
-        <ModernBottomBar />
-      </>
 
+      <ModernBottomBar />
     </Box>
-
   );
 }

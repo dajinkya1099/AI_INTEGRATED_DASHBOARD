@@ -20,6 +20,7 @@ import time
 import json
 # from app.ai_suggestions import build_prompt_for_ai_suggestions,ollama_model_call_for_ai_suggestions,apply_ai_suggestions
 from app.ai_suggestions_update import build_prompt_for_ai_suggestions, apply_ai_suggestions,ollama_model_call_for_ai_suggestions
+from app.redis_client import r
 
 app = FastAPI()
 
@@ -39,6 +40,51 @@ def home():
 
 
 
+# @app.get("/schemas")
+# def schemas():
+#     cache_key = "all_schemas"
+
+#     cached_data = r.get(cache_key)
+#     if cached_data:
+#         print("Returning all_schemas from cache")
+#         return {
+#             "schemas": json.loads(cached_data),
+#             "source": "cache"
+#         }
+
+#     print("Fetching all_schemas from DB")
+#     schemaName = get_user_schema_names()
+
+#     r.set(cache_key, json.dumps(schemaName), ex=300)
+
+#     return {
+#         "schemas": schemaName,
+#         "source": "database"
+#     }
+
+# @app.get("/get-schema-by-schemaName")
+# def get_schema(schemaName: str):
+#     print("method for get schema for given schema name")
+
+#     cache_key = f"schema:{schemaName}"
+
+#     # 1️⃣ Try to get from Redis
+#     cached_schema = r.get(cache_key)
+#     if cached_schema:
+#         print("Returning schema from cache")
+#         return json.loads(cached_schema)
+
+#     # 2️⃣ If not cached → compute
+#     print("Returning schema from db")
+#     schema = parse_schema_text(schemaName)
+#     print("schema ", schema)
+
+#     # 3️⃣ Store in Redis (10 minutes = 600 sec)
+#     r.set(cache_key, json.dumps(schema), ex=600)
+
+#     return schema
+
+
 @app.get("/schemas")
 def schemas():
     print("method for get all schema name")
@@ -54,7 +100,6 @@ def get_schema(schemaName : str):
     schema= parse_schema_text(schemaName)
     print("schema ",schema )
     return schema
-
 
 class QueryRequest(BaseModel):  
     schemaName: str
@@ -152,4 +197,24 @@ def get_ai_suggestions(request: QueryRequest):
 @app.post("/get-react-code-as-json")
 def get_react_code_as_json(request: QueryRequest):
     return generate_visualization_as_json(request)       
+
+    
+    
+def get_expensive_dashboard_data():
+    time.sleep(2)
+    return {"users": 150, "projects": 10}
+
+@app.get("/dashboard")
+def dashboard():
+    cache_key = "dashboard_data"
+    
+    cached = r.get(cache_key)
+    if cached:
+        return {"data": cached, "source": "cache"}
+
+    data = get_expensive_dashboard_data()
+    r.set(cache_key, str(data), ex=300)
+    
+    return {"data": data, "source": "computed"}
+
   
