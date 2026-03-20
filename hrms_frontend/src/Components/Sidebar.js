@@ -5,7 +5,8 @@ const menuItems = [
   { name: "Home", path: "/" },
   { name: "Dashboard", path: "/dashboard" },
   { name: "Settings", path: "/settings" },
- { name: "Dynamic Data Explorer", path: "/dynamic-data-explorer" }
+ { name: "Dynamic Data Explorer", path: "/dynamic-data-explorer" },
+  { name: "Configure Dashboard", path: "/configure-dashboard"}
 ];
 
 function Sidebar() {

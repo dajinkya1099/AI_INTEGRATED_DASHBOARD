@@ -1,0 +1,104 @@
+.config-container {
+  padding: 30px;
+  background: #f4f6f8;
+  min-height: 100vh;
+}
+
+/* Title */
+.config-container h2 {
+  margin-bottom: 20px;
+  color: #1e293b;
+}
+
+/* Dropdown */
+.config-dropdown {
+  padding: 12px;
+  width: 320px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  font-size: 14px;
+  margin-bottom: 25px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+/* Section Boxes */
+.metrics-box,
+.selected-box {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 20px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+
+/* Section Titles */
+.metrics-box h3,
+.selected-box h3 {
+  margin-bottom: 15px;
+  color: #0f172a;
+}
+
+/* Metric Row */
+.metric-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* Button */
+.metric-item button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  transition: 0.3s;
+}
+
+/* Add Button */
+.metric-item button {
+  background: #3b82f6;
+  color: white;
+}
+
+.metric-item button:hover {
+  background: #2563eb;
+}
+
+/* Remove Button */
+.module-box .metric-item button {
+  background: #ef4444;
+}
+
+.module-box .metric-item button:hover {
+  background: #dc2626;
+}
+
+/* Module Section */
+.module-box {
+  margin-top: 15px;
+  padding: 10px;
+  border-left: 4px solid #3b82f6;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+/* Save Button */
+.save-btn {
+  margin-top: 30px;
+  padding: 12px 25px;
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.save-btn:hover {
+  transform: scale(1.05);
+}

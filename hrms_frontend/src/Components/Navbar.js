@@ -1,19 +1,39 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LogoutIcon from "@mui/icons-material/Logout";
 
-function Navbar() {
+function Navbar({ user, setUser }) {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    setUser(null);   // ✅ works now
+
+    navigate("/login");
+  };
+
   return (
     <div style={styles.navbar}>
-      <h2 style={styles.title}>
-        HRMS (Human Resource Management System)
-      </h2>
+      <h2 style={styles.title}>AI Integrated Dashboard</h2>
 
       <div style={styles.iconContainer}>
         <NotificationsIcon style={styles.icon} />
-        <AccountCircleIcon style={styles.icon} />
-        <LogoutIcon style={styles.icon} />
+
+        <div style={styles.userBox}>
+          <AccountCircleIcon style={styles.icon} />
+          <span style={styles.username}>
+            {user?.username || "Guest"}
+          </span>
+        </div>
+
+        <div onClick={handleLogout}>
+          <LogoutIcon style={{ ...styles.icon, color: "#f87171" }} />
+        </div>
       </div>
     </div>
   );
@@ -38,12 +58,20 @@ const styles = {
   iconContainer: {
     display: "flex",
     alignItems: "center",
-    gap: "20px",
-    cursor: "pointer"
+    gap: "20px"
   },
   icon: {
     fontSize: "26px",
-    transition: "0.3s",
+    cursor: "pointer",
+    transition: "0.3s"
+  },
+  userBox: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px"
+  },
+  username: {
+    fontSize: "14px"
   }
 };
 

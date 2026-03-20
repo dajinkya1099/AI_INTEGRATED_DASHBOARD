@@ -1,0 +1,140 @@
+.dashboard-container {
+  padding: 25px;
+  background: #f1f5f9;
+  min-height: 100vh;
+}
+
+.dashboard-title {
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #1e293b;
+}
+
+/* MODULE */
+.module-card {
+  background: #ffffff;
+  border-radius: 16px;
+  margin-bottom: 25px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  padding: 15px;
+}
+
+.module-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #334155;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* GRID */
+.widget-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 column layout */
+  gap: 20px;
+}
+
+/* default */
+.widget-wrapper {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  overflow: hidden;
+  transition: 0.3s;
+}
+
+/* 🔥 TABLE FULL WIDTH */
+.widget-wrapper.full-width {
+  grid-column: span 3;
+}
+
+/* 🔥 GRAPH MEDIUM WIDTH */
+.widget-wrapper.half-width {
+  grid-column: span 2;
+}
+
+.widget-wrapper:hover {
+  transform: translateY(-4px);
+}
+
+/* TOP BAR */
+.widget-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e293b;
+  color: white;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+/* ICON BUTTON */
+.icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  margin-left: 8px;
+  color: white;
+}
+
+.icon-btn:hover {
+  color: #f87171;
+}
+
+/* CARD BODY */
+.card-body {
+  padding: 15px;
+}
+
+/* TABLE */
+.table-container {
+  overflow-x: auto;
+  max-height: 250px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th {
+  background: #f1f5f9;
+  padding: 8px;
+  text-align: left;
+}
+
+td {
+  padding: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* GRAPH */
+.graph-container {
+  height: 250px;
+}
+
+/* PROGRESS */
+.progress-bar {
+  height: 10px;
+  border-radius: 6px;
+  background: #e2e8f0;
+  margin-top: 10px;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #6366f1, #22c55e);
+}
+
+/* NO DATA */
+.no-data {
+  text-align: center;
+  color: gray;
+}

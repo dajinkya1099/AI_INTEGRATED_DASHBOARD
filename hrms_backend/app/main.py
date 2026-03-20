@@ -10,8 +10,15 @@ from app.schema_generator import execute_sql_get_db_data_by_schemaName_query,par
 # from app.visualization_service_with_cache  import generate_react_visualization
 # from app.visualization_agent import generate_react_visualization
 from app.viz_agent import generate_react_visualization, generate_visualization_as_json
+from app.model import LoginRequest, SignupRequest
+from app.security import hash_password, verify_password, create_token
+from app.db import get_connection
+from fastapi import HTTPException
+from app.api import count_all_employees, employees_by_department, get_all_employees, employee_by_marital_status, employees_by_salary, attendance_rate_today, payroll_processed_rate
 
-
+import smtplib
+from email.mime.text import MIMEText
+import random
 
 import time
 
@@ -33,6 +40,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+EMAIL_SENDER = "dajinkya1099@gmail.com"
+EMAIL_PASSWORD = "vpst ighl vqjv qdil"
+
+
+def send_email_otp(email, otp):
+
+    message = MIMEText(f"Your verification OTP is: {otp}\nThis OTP will expire in 1 minute.")
+
+    message["Subject"] = "OTP Verification"
+    message["From"] = EMAIL_SENDER
+    message["To"] = email
+
+    server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+    server.starttls()
+
+    server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+
+    server.sendmail(EMAIL_SENDER, email, message.as_string())
+
+    server.quit()
+
+otp_store = {}
+OTP_EXPIRY = 60  # 1 minute
 
 @app.get("/")
 def home():
@@ -217,4 +249,246 @@ def dashboard():
     
     return {"data": data, "source": "computed"}
 
-  
+# @app.post("/signup")
+# def signup(req: SignupRequest):
+
+#     conn = get_connection()
+#     cur = conn.cursor()
+
+#     # check username
+#     cur.execute("SELECT id FROM hrms.users WHERE username=%s", (req.username,))
+#     if cur.fetchone():
+#         raise HTTPException(status_code=400, detail="Username exists")
+
+#     # check email
+#     cur.execute("SELECT id FROM hrms.users WHERE email=%s", (req.email,))
+#     if cur.fetchone():
+#         raise HTTPException(status_code=400, detail="Email exists")
+
+#     # get role_id
+#     cur.execute("SELECT id FROM hrms.roles WHERE name=%s", (req.role,))
+#     role = cur.fetchone()
+
+#     if not role:
+#         raise HTTPException(status_code=400, detail="Invalid role")
+
+#     role_id = role[0]
+
+#     # hash password
+#     hashed = hash_password(req.password)
+
+#     # insert user
+#     cur.execute("""
+#         INSERT INTO hrms.users (email, username, hashed_password, role_id)
+#         VALUES (%s, %s, %s, %s)
+#     """, (req.email, req.username, hashed, role_id))
+
+#     conn.commit()
+#     cur.close()
+#     conn.close()
+
+#     return {"success": True}
+
+# =========================
+# SEND OTP
+# =========================
+@app.post("/send-otp")
+def send_otp(data: dict):
+
+    email = data.get("email")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Email required")
+
+    otp = str(random.randint(100000, 999999))
+
+    otp_store[email] = {
+        "otp": otp,
+        "expires_at": time.time() + OTP_EXPIRY
+    }
+
+    send_email_otp(email, otp)
+
+    return {"success": True, "message": "OTP sent"}
+
+# =========================
+# RESEND OTP
+# =========================
+@app.post("/resend-otp")
+def resend_otp(data: dict):
+    return send_otp(data)
+
+# =========================
+# VERIFY OTP + SIGNUP
+# =========================
+@app.post("/verify-otp-signup")
+def verify_signup(req: SignupRequest):
+
+    stored = otp_store.get(req.email)
+
+    if not stored:
+        raise HTTPException(status_code=400, detail="OTP not found")
+
+    if time.time() > stored["expires_at"]:
+        otp_store.pop(req.email)
+        raise HTTPException(status_code=400, detail="OTP expired")
+
+    if stored["otp"] != req.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    # check existing
+    cur.execute("SELECT id FROM hrms.users WHERE username=%s", (req.username,))
+    if cur.fetchone():
+        raise HTTPException(status_code=400, detail="Username exists")
+
+    cur.execute("SELECT id FROM hrms.users WHERE email=%s", (req.email,))
+    if cur.fetchone():
+        raise HTTPException(status_code=400, detail="Email exists")
+
+    # role
+    cur.execute("SELECT id FROM hrms.roles WHERE name=%s", (req.role,))
+    role = cur.fetchone()
+
+    if not role:
+        raise HTTPException(status_code=400, detail="Invalid role")
+
+    role_id = role[0]
+
+    hashed = hash_password(req.password)
+
+    cur.execute("""
+        INSERT INTO hrms.users (email, username, hashed_password, role_id)
+        VALUES (%s, %s, %s, %s)
+    """, (req.email, req.username, hashed, role_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    otp_store.pop(req.email)
+
+    return {"success": True}
+
+@app.post("/login")
+def login(req: LoginRequest):
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT u.username, u.hashed_password, r.name, u.is_active
+        FROM hrms.users u
+        LEFT JOIN hrms.roles r ON u.role_id = r.id
+        WHERE u.username=%s
+    """, (req.username,))
+
+    user = cur.fetchone()
+
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found")
+
+    username, hashed_password, role, is_active = user
+
+    if not is_active:
+        raise HTTPException(status_code=403, detail="User inactive")
+
+    # verify password
+    if not verify_password(req.password, hashed_password):
+        raise HTTPException(status_code=400, detail="Invalid password")
+
+    token = create_token({"username": username, "role": role})
+    
+    cur.close()
+    conn.close()
+
+    return {
+    "success": True,
+    "token": token,   # ✅ real token
+    "user": {
+        "username": username,
+        "role": role
+    }
+}
+    
+import json
+
+@app.post("/save-dashboard-config")
+def save_config(data: dict):
+
+    user_id = data.get("userId")
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO hrms.user_dashboard_config (user_id, dashboard_data)
+        VALUES (%s, %s)
+        ON CONFLICT (user_id)
+        DO UPDATE SET dashboard_data = EXCLUDED.dashboard_data
+    """, (user_id, json.dumps(data))) 
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+@app.get("/get-dashboard-config/{user_id}")
+def get_config(user_id: str):
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT dashboard_data FROM hrms.user_dashboard_config
+        WHERE user_id=%s
+    """, (user_id,))
+
+    row = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    if not row:
+        return {"selections": []}
+
+    return row[0]
+
+# dashboard config related APIs
+
+@app.get("/emp/count/all")
+def get_emp_count():
+    return {"value": count_all_employees()}
+
+
+@app.get("/employees/by-department")
+def get_emp_dept():
+    return employees_by_department()
+
+
+@app.get("/employees/by-employment-marital-status")
+def get_marital():
+    return employee_by_marital_status()
+
+
+@app.get("/employees/by-employment-salary")
+def get_salary():
+    return employees_by_salary()
+
+
+@app.get("/get/employee-list")
+def get_employee_list():
+    return get_all_employees()
+
+
+@app.get("/attendance/rate-today")
+def get_attendance():
+    return {"value": attendance_rate_today()}
+
+
+@app.get("/payroll/processed-rate")
+def get_payroll():
+    return {"value": payroll_processed_rate()}
