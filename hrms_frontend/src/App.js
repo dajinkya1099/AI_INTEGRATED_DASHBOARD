@@ -42,6 +42,8 @@ import AIResponse from "./Pages/AIResponse";
 import Login from "./Components/Login";
 import Signup from "./Components/Signup";
 import ConfigDashboard from "./Pages/ConfigDashboard";
+import AdminDashboardConfig from "./Pages/AdminDashboardConfig";
+import { Navigate } from "react-router-dom";
 
 function App() {
 
@@ -112,10 +114,25 @@ function App() {
         <Route path="/configure-dashboard" element={
           <ProtectedRoute user={user}>
             <Layout user={user} setUser={setUser}>
-            <ConfigDashboard />
+              <ConfigDashboard />
             </Layout>
           </ProtectedRoute>
         } />
+
+        <Route
+          path="/admin-dashboard-config"
+          element={
+            <ProtectedRoute user={user}>
+              {user?.role === "ADMIN" ? (
+                <Layout user={user} setUser={setUser}>
+                  <AdminDashboardConfig />
+                </Layout>
+              ) : (
+                <Navigate to="/dashboard" />
+              )}
+            </ProtectedRoute>
+          }
+        />
 
         <Route path="/custom-response" element={
           <ProtectedRoute user={user}>

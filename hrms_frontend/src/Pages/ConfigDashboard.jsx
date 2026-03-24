@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../Styles/configDashboard.css";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 function ConfigDashboard() {
 
@@ -24,21 +25,45 @@ function ConfigDashboard() {
   }, []);
 
   // ================= MASTER DATA =================
-  const modules = {
-    "Human Resource Department": [
-      { key: "Total Employees", url: "/emp/count/all", type: "count" },
-      { key: "Employees by Department", url: "/employees/by-department", type: "graph" },
-      { key: "Employee Marital Status", url: "/employees/by-employment-marital-status", type: "graph" },
-      { key: "Employee VS Salary", url: "/employees/by-employment-salary", type: "graph" },
-      { key: "Employee Directory", url: "/get/employee-list", type: "list" }
-    ],
-    "Payroll": [
-      { key: "Payroll Processed", url: "/payroll/processed-rate", type: "percentage" }
-    ],
-    "Attendance": [
-      { key: "Attendance Rate", url: "/attendance/rate-today", type: "percentage" }
-    ]
-  };
+  // const modules = {
+  //   "Human Resource Department": [
+  //     { key: "Total Employees", url: "/emp/count/all", type: "count" },
+  //     { key: "Employees by Department", url: "/employees/by-department", type: "graph" },
+  //     { key: "Employee Marital Status", url: "/employees/by-employment-marital-status", type: "graph" },
+  //     { key: "Employee VS Salary", url: "/employees/by-employment-salary", type: "graph" },
+  //     { key: "Employee Directory", url: "/get/employee-list", type: "list" }
+  //   ],
+  //   "Payroll": [
+  //     { key: "Payroll Processed", url: "/payroll/processed-rate", type: "percentage" }
+  //   ],
+  //   "Attendance": [
+  //     { key: "Attendance Rate", url: "/attendance/rate-today", type: "percentage" }
+  //   ]
+  // };
+
+  const [modules, setModules] = useState({});
+
+  useEffect(() => {
+    // 🔹 Load user saved config
+    fetch(`http://localhost:8282/get-dashboard-config/${user.username}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data?.selections) {
+          setConfig(data.selections);
+        }
+      })
+      .catch(err => console.error(err));
+
+    // 🔹 Load modules from backend
+    fetch(`http://localhost:8282/api/dashboard/modules/${user.username}`)
+      .then(res => res.json())
+      .then(data => {
+        console.log("Modules from backend:", data);
+        setModules(data); // ✅ same format as before
+      })
+      .catch(err => console.error(err));
+
+  }, []);
 
   // ================= ADD =================
   const addMetric = (metric) => {
@@ -144,7 +169,7 @@ function ConfigDashboard() {
 
       {/* SELECTED METRICS */}
       <div className="selected-box">
-        <h3>Selected Widgets</h3>
+        {/* <h3>Selected Widgets</h3> */}
 
         {config.length === 0 && <p>No widgets selected</p>}
 
@@ -157,8 +182,11 @@ function ConfigDashboard() {
               <div key={m.key} className="metric-item">
                 <span>{m.key}</span>
 
-                <button onClick={() => removeMetric(mod.module, m.key)}>
-                  Remove
+                <button
+                  className="icon-btn delete"
+                  onClick={() => removeMetric(mod.module, m.key)}
+                >
+                  <DeleteIcon fontSize="small" />
                 </button>
               </div>
             ))}

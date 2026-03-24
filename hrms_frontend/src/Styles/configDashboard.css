@@ -1,104 +1,416 @@
+/* 
 .config-container {
-  padding: 30px;
-  background: #f4f6f8;
+  padding: 40px;
+  background: linear-gradient(135deg, #eef2f7, #f8fafc);
   min-height: 100vh;
+  font-family: "Inter", sans-serif;
 }
 
-/* Title */
+
 .config-container h2 {
-  margin-bottom: 20px;
-  color: #1e293b;
+  margin-bottom: 25px;
+  color: #0f172a;
+  font-size: 26px;
+  font-weight: 600;
 }
 
-/* Dropdown */
+
 .config-dropdown {
-  padding: 12px;
-  width: 320px;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
+  padding: 12px 14px;
+  width: 340px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
   background: white;
   font-size: 14px;
-  margin-bottom: 25px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  margin-bottom: 30px;
+  outline: none;
+  transition: 0.3s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
 }
 
-/* Section Boxes */
+.config-dropdown:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+}
+
+
 .metrics-box,
 .selected-box {
   background: white;
-  padding: 20px;
-  border-radius: 12px;
+  padding: 22px;
+  border-radius: 14px;
   margin-top: 20px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  transition: 0.3s;
 }
 
-/* Section Titles */
+.metrics-box:hover,
+.selected-box:hover {
+  transform: translateY(-2px);
+}
+
+
 .metrics-box h3,
 .selected-box h3 {
   margin-bottom: 15px;
   color: #0f172a;
+  font-size: 18px;
+  font-weight: 600;
 }
 
-/* Metric Row */
+
 .metric-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 12px 14px;
+  border-radius: 8px;
+  transition: 0.2s;
+
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #3b82f6;
+  background: white;
+  margin-bottom: 8px;
 }
 
-/* Button */
+.metric-item:hover {
+  border-color: #3b82f6;
+  background: #f1f5f9;
+}
+
+.metric-item span {
+  flex: 1;              
+  margin-right: 12px;   
+}
+
+
 .metric-item button {
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 6px;
   border: none;
   cursor: pointer;
   font-size: 12px;
-  transition: 0.3s;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-/* Add Button */
+
 .metric-item button {
-  background: #3b82f6;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: white;
 }
 
 .metric-item button:hover {
-  background: #2563eb;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
 }
 
-/* Remove Button */
+
+.metric-item button:disabled {
+  background: #cbd5f5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+
 .module-box .metric-item button {
-  background: #ef4444;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
 .module-box .metric-item button:hover {
-  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239,68,68,0.3);
 }
 
-/* Module Section */
+
 .module-box {
-  margin-top: 15px;
-  padding: 10px;
-  border-left: 4px solid #3b82f6;
+  margin-top: 18px;
+  padding: 14px;
+  border-left: 5px solid #3b82f6;
   background: #f8fafc;
-  border-radius: 8px;
+  border-radius: 10px;
+  transition: 0.2s;
 }
 
-/* Save Button */
+.module-box:hover {
+  background: #f1f5f9;
+}
+
+.module-box h4 {
+  margin-bottom: 10px;
+  color: #1e293b;
+}
+
+
+.selected-box {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+
 .save-btn {
-  margin-top: 30px;
-  padding: 12px 25px;
+  margin-top: 35px;
+  padding: 14px 28px;
   background: linear-gradient(135deg, #16a34a, #22c55e);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-weight: 500;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
-  transition: 0.3s;
+  transition: all 0.25s ease;
 }
 
 .save-btn:hover {
-  transform: scale(1.05);
+  transform: scale(1.06);
+  box-shadow: 0 8px 20px rgba(34,197,94,0.35);
+}
+
+
+.selected-box p {
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 10px;
+} */
+
+
+/* ================= CONTAINER ================= */
+.config-container {
+  padding: 40px;
+  background: linear-gradient(135deg, #eef2f7, #f9fbfd);
+  min-height: 100vh;
+  font-family: "Inter", sans-serif;
+}
+
+/* ================= TITLE ================= */
+.config-container h2 {
+  margin-bottom: 10px;
+
+  font-size: 26px;
+  font-weight: 600;
+  color: #0f172a;
+
+  text-align: left; /* ✅ important */
+}
+
+/* subtle underline (left aligned) */
+.config-container h2::after {
+  content: "";
+  display: block;
+  width: 50px;
+  height: 3px;
+  margin-top: 6px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+/* ================= DROPDOWN ================= */
+.config-dropdown {
+  display: block;
+
+  margin: 15px 0 25px 0; /* ✅ left aligned spacing */
+  width: 280px;
+
+  padding: 10px 14px;
+
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+
+  font-size: 14px;
+  color: #1e293b;
+
+  outline: none;
+  transition: all 0.25s ease;
+
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+/* hover */
+.config-dropdown:hover {
+  border-color: #3b82f6;
+}
+
+/* focus */
+.config-dropdown:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+}
+
+/* ================= CARDS ================= */
+.metrics-box,
+.selected-box {
+  background: #ffffff;
+  padding: 22px;
+  border-radius: 16px;
+  margin-top: 20px;
+  box-shadow: 0 12px 35px rgba(0,0,0,0.08);
+  transition: all 0.25s ease;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #3b82f6;
+}
+
+.metrics-box:hover,
+.selected-box:hover {
+  transform: translateY(-3px);
+}
+
+/* ================= HEADINGS ================= */
+.metrics-box h3,
+.selected-box h3 {
+  margin-bottom: 16px;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* ================= METRIC ITEM ================= */
+.metric-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #3b82f6;
+
+  margin-bottom: 10px;
+  transition: all 0.2s ease;
+  gap: 12px;
+}
+
+.metric-item:hover {
+  border-color: #3b82f6;
+  background: #f8fafc;
+  transform: scale(1.01);
+}
+
+/* TEXT */
+.metric-item span {
+  flex: 1;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+/* ================= BUTTON ================= */
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+/* delete style */
+.icon-btn.delete {
+  background: #fee2e2;
+}
+
+.icon-btn.delete:hover {
+  background: #dc2626;
+  color: white;
+  transform: scale(1.1);
+}
+
+/* DISABLED */
+.metric-item button:disabled {
+  background: #cbd5f5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ================= MODULE BOX ================= */
+.module-box {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  transition: 0.2s;
+}
+
+.module-box:hover {
+  background: #f1f5f9;
+}
+
+.module-box h4 {
+  margin-bottom: 10px;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* REMOVE BUTTON (CLEAR UX) */
+.module-box .metric-item button {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.module-box .metric-item button:hover {
+  box-shadow: 0 6px 14px rgba(239,68,68,0.25);
+}
+
+/* ================= SCROLL ================= */
+.selected-box {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+/* Smooth scrollbar */
+.selected-box::-webkit-scrollbar {
+  width: 6px;
+}
+
+.selected-box::-webkit-scrollbar-thumb {
+  background: #cbd5f5;
+  border-radius: 10px;
+}
+
+/* ================= SAVE BUTTON ================= */
+.save-btn {
+  display: block;
+  margin: 40px auto 0 auto; /* ✅ center */
+
+  padding: 14px 40px;
+
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  color: white;
+
+  border: none;
+  border-radius: 12px;
+
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+/* hover effect */
+.save-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 12px 25px rgba(34,197,94,0.35);
+}
+
+/* click effect */
+.save-btn:active {
+  transform: scale(0.98);
+}
+
+/* ================= EMPTY STATE ================= */
+.selected-box p {
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+  margin-top: 12px;
 }

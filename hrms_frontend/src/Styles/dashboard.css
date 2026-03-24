@@ -32,10 +32,28 @@
 }
 
 /* GRID */
+/* .widget-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+} */
+
 .widget-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 column layout */
+  grid-template-columns: repeat(12, 1fr);
   gap: 20px;
+}
+
+.widget-wrapper.small {
+  grid-column: span 3;
+}
+
+.widget-wrapper.medium {
+  grid-column: span 4;
+}
+
+.widget-wrapper.large {
+  grid-column: span 12;
 }
 
 /* default */
@@ -66,12 +84,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+
   background: #1e293b;
   color: white;
-  padding: 8px 12px;
-  font-size: 14px;
-}
 
+  padding: 6px 12px;   /* ✅ reduced height */
+  font-size: 13px;     /* slightly smaller text */
+
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
 /* ICON BUTTON */
 .icon-btn {
   background: transparent;
@@ -84,6 +106,24 @@
 
 .icon-btn:hover {
   color: #f87171;
+}
+
+.widget-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* ✅ space between icons */
+}
+
+.widget-actions svg {
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.8;
+  transition: 0.2s;
+}
+
+.widget-actions svg:hover {
+  opacity: 1;
+  transform: scale(1.1);
 }
 
 /* CARD BODY */

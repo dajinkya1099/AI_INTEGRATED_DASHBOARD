@@ -13,7 +13,7 @@ function Layout({ children, user, setUser }) {
       <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
         
         {/* Sidebar */}
-        <Sidebar />
+        <Sidebar user={user} />
 
         {/* Page Content */}
         <Box

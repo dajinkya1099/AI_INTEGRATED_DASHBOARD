@@ -1,0 +1,48 @@
+.progress-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  transition: 0.3s;
+}
+
+.progress-card:hover {
+  transform: translateY(-4px);
+}
+
+.progress-title {
+  margin-bottom: 15px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* 🔵 Circular wrapper */
+.circular-wrapper {
+  position: relative;
+  display: inline-flex;
+  margin-bottom: 15px;
+}
+
+.circular-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 📊 Linear bar */
+.progress-container {
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.5s ease;
+}

@@ -1,0 +1,38 @@
+.graph-card {
+  padding: 10px;
+}
+
+.graph-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.graph-controls select,
+.graph-controls button {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #becfe7;
+  cursor: pointer;
+  background: white;
+  color: #00070f;
+}
+
+.graph-container {
+  height: 300px;
+}
+
+/* Center pie chart */
+.pie-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  margin-top: -15px;
+}
+
+/* control pie size */
+.pie-wrapper canvas {
+  max-width: 300px !important;
+  max-height: 250px !important;
+}

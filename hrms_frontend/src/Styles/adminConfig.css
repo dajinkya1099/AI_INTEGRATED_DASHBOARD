@@ -1,0 +1,40 @@
+.admin-container {
+  padding: 20px;
+  background: #f8fafc;
+}
+
+.card {
+  background: white;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.metric-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.metric-row input,
+.metric-row select {
+  flex: 1;
+  padding: 6px;
+}
+
+button {
+  margin-top: 10px;
+  padding: 6px 12px;
+  background: #1e293b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.module-box {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
