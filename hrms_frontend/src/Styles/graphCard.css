@@ -4,18 +4,61 @@
 
 .graph-controls {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
+  align-items: center;
+  justify-content: space-between; /* ✅ left + right split */
+
+  margin-bottom: 12px;
+}
+.graph-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* space between icons */
 }
 
-.graph-controls select,
-.graph-controls button {
-  padding: 5px 10px;
+.graph-controls select {
+  padding: 6px 10px;
   border-radius: 6px;
   border: 1px solid #becfe7;
-  cursor: pointer;
+
   background: white;
-  color: #00070f;
+  color: #0f172a;
+  cursor: pointer;
+
+  font-size: 13px;
+}
+
+.icon-btn-graph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+
+  color: #1e293b;   /* ✅ IMPORTANT: visible icon color */
+  opacity: 1;       /* ✅ ensure not faded */
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* 🔥 FORCE ICON COLOR */
+.icon-btn-graph svg {
+  color: #1e293b !important;  /* ✅ fix MUI icon color issue */
+  opacity: 1 !important;
+}
+
+.icon-btn-graph:hover {
+  background: #f1f5f9;
+  border-color: #3b82f6;
+}
+
+.icon-btn-graph:hover svg {
+  color: #2563eb !important;
 }
 
 .graph-container {

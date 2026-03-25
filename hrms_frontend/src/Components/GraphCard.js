@@ -84,6 +84,8 @@ import { useEffect, useState, useRef } from "react";
 import { Bar, Line, Pie } from "react-chartjs-2";
 import { saveAs } from "file-saver";
 import "../Styles/graphCard.css";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import DownloadIcon from "@mui/icons-material/Download";
 
 import {
   Chart as ChartJS,
@@ -255,19 +257,28 @@ function GraphCard({ metric, refreshKey }) {
       
       <div className="graph-controls">
 
-        <select
-          value={chartType}
-          onChange={(e) => setChartType(e.target.value)}
-        >
-          <option value="bar">Bar</option>
-          <option value="line">Line</option>
-          <option value="pie">Pie</option>
-        </select>
+  {/* LEFT */}
+  <select
+    value={chartType}
+    onChange={(e) => setChartType(e.target.value)}
+  >
+    <option value="bar">Bar</option>
+    <option value="line">Line</option>
+    <option value="pie">Pie</option>
+  </select>
 
-        <button onClick={resetZoom}>Reset</button>
-        <button onClick={downloadCSV}>Download CSV</button>
+  {/* RIGHT */}
+  <div className="graph-actions">
+    <button className="icon-btn-graph" onClick={resetZoom}>
+      <RefreshIcon fontSize="small" />
+    </button>
 
-      </div>
+    <button className="icon-btn-graph" onClick={downloadCSV}>
+      <DownloadIcon fontSize="small" />
+    </button>
+  </div>
+
+</div>
 
       
       <div className="graph-container">

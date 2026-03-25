@@ -184,25 +184,19 @@
 
 /* ================= TITLE ================= */
 .config-container h2 {
-  margin-bottom: 10px;
+  width: 100%;
 
-  font-size: 26px;
+  padding: 14px 20px;
+  margin-bottom: 25px;
+  margin-top: 0px;
+  font-size: 22px;
   font-weight: 600;
-  color: #0f172a;
+  color: white;
 
-  text-align: left; /* ✅ important */
-}
-
-/* subtle underline (left aligned) */
-.config-container h2::after {
-  content: "";
-  display: block;
-  width: 50px;
-  height: 3px;
-  margin-top: 6px;
+  background: linear-gradient(135deg, #75839b, #1f2e4f);
   border-radius: 10px;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
+
 /* ================= DROPDOWN ================= */
 .config-dropdown {
   display: block;
@@ -296,7 +290,7 @@
 }
 
 /* ================= BUTTON ================= */
-.icon-btn {
+.icon-btn-config-dash {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -312,14 +306,14 @@
 }
 
 /* delete style */
-.icon-btn.delete {
-  background: #fee2e2;
+.icon-btn-config-dash.delete {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
 }
 
-.icon-btn.delete:hover {
-  background: #dc2626;
-  color: white;
-  transform: scale(1.1);
+.icon-btn-config-dash.delete:hover {
+  background: #dc2626 !important;
+  color: white !important;
 }
 
 /* DISABLED */
@@ -327,6 +321,25 @@
   background: #cbd5f5;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+/* ADD (blue) */
+.icon-btn-config-dash.add {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.icon-btn-config-dash.add:hover {
+  background: #2563eb;
+  color: white;
+  transform: scale(1.1);
+}
+
+/* ADDED (green + disabled look) */
+.icon-btn-config-dash.added {
+  background: #dcfce7;
+  color: #16a34a;
+  cursor: not-allowed;
 }
 
 /* ================= MODULE BOX ================= */

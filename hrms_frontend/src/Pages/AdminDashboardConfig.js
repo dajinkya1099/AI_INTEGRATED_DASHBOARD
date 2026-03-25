@@ -400,6 +400,7 @@
 
 import { useState, useEffect } from "react";
 import "../Styles/adminConfig.css";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 function AdminDashboardConfig() {
 
@@ -578,7 +579,7 @@ function AdminDashboardConfig() {
 
         {/* ✅ FIXED */}
         {Object.entries(modules).map(([moduleName, data]) => (
-  <div key={moduleName} className="module-box">
+  <div key={moduleName} className="module-box-admin-config">
 
     <strong>{moduleName}</strong>
 
@@ -591,7 +592,7 @@ function AdminDashboardConfig() {
     </ul>
 
     <button onClick={() => handleDelete(moduleName)}>
-      Delete
+      <DeleteIcon fontSize="small" />
     </button>
 
   </div>

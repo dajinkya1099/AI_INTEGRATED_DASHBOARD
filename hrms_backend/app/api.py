@@ -165,3 +165,46 @@ def payroll_processed_rate():
         return 0.0
 
     return round((paid * 100.0 / total), 2)
+
+def count_of_all_departments():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT COUNT(*) FROM hrms.departments")
+    count = cur.fetchone()[0]
+
+    cur.close()
+    conn.close()
+
+    return count
+
+def fetch_all_departments():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT d.id, d.name AS department_name, d.description, d.created_at
+        FROM hrms.departments d
+        ORDER BY d.name
+    """)
+
+    columns = [desc[0] for desc in cur.description]
+    data = [dict(zip(columns, row)) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return data
+
+def get_single_value(query):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(query)
+    value = cur.fetchone()[0]
+
+    cur.close()
+    conn.close()
+
+    return {"value": value}
+

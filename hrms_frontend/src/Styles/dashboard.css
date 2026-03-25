@@ -20,7 +20,7 @@
   padding: 15px;
 }
 
-.module-header {
+/* .module-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -29,6 +29,35 @@
   font-weight: 600;
   color: #334155;
   border-bottom: 1px solid #e2e8f0;
+} */
+
+.module-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 12px 14px;
+
+  font-size: 17px;         /* slightly refined */
+  font-weight: 600;        /* keep strong but not heavy */
+  letter-spacing: 0.2px;   /* subtle premium feel */
+
+  color: #0f172a;          /* darker for better contrast */
+
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.module-header::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  bottom: 0;
+
+  width: 40px;
+  height: 2px;
+
+  background: #3b82f6;
+  border-radius: 10px;
 }
 
 /* GRID */
@@ -85,12 +114,12 @@
   justify-content: space-between;
   align-items: center;
 
-  background: #1e293b;
+  background: linear-gradient(135deg, #75839b, #1f2e4f);
   color: white;
 
   padding: 6px 12px;   /* ✅ reduced height */
   font-size: 13px;     /* slightly smaller text */
-
+  font-weight: 500;
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
 }

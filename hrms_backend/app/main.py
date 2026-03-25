@@ -16,7 +16,7 @@ from app.model import LoginRequest, SignupRequest, Metric, Module, Assign
 from app.security import hash_password, verify_password, create_token
 from app.db import get_connection
 from fastapi import HTTPException
-from app.api import count_all_employees, employees_by_department, get_all_employees, employee_by_marital_status, employees_by_salary, attendance_rate_today, payroll_processed_rate
+from app.api import count_all_employees, employees_by_department, fetch_all_departments, get_all_employees, employee_by_marital_status, employees_by_salary, attendance_rate_today, get_single_value, payroll_processed_rate,count_of_all_departments
 
 import smtplib
 from email.mime.text import MIMEText
@@ -809,3 +809,25 @@ def get_attendance():
 @app.get("/payroll/processed-rate")
 def get_payroll():
     return {"value": payroll_processed_rate()}
+
+@app.get("/department/count")
+def count_all_departments():
+    return {"value": count_of_all_departments()}
+
+@app.get("/department-list")
+def get_all_departments():
+    return fetch_all_departments()
+
+@app.get("/get/employee-highest-salary")
+def get_highest_salary():
+    return get_single_value("SELECT MAX(basic_salary) FROM hrms.employees")
+
+
+@app.get("/get/employee-average-salary")
+def get_average_salary():
+    return get_single_value("SELECT ROUND(AVG(basic_salary), 2) FROM hrms.employees")
+
+
+@app.get("/employees/by-lowest-salary")
+def get_lowest_salary():
+    return get_single_value("SELECT MIN(basic_salary) FROM hrms.employees")

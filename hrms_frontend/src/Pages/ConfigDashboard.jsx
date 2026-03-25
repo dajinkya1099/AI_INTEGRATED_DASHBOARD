@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../Styles/configDashboard.css";
 import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
+import CheckIcon from "@mui/icons-material/Check";
 
 function ConfigDashboard() {
 
@@ -25,23 +27,32 @@ function ConfigDashboard() {
   }, []);
 
   // ================= MASTER DATA =================
-  // const modules = {
-  //   "Human Resource Department": [
-  //     { key: "Total Employees", url: "/emp/count/all", type: "count" },
-  //     { key: "Employees by Department", url: "/employees/by-department", type: "graph" },
-  //     { key: "Employee Marital Status", url: "/employees/by-employment-marital-status", type: "graph" },
-  //     { key: "Employee VS Salary", url: "/employees/by-employment-salary", type: "graph" },
-  //     { key: "Employee Directory", url: "/get/employee-list", type: "list" }
-  //   ],
-  //   "Payroll": [
-  //     { key: "Payroll Processed", url: "/payroll/processed-rate", type: "percentage" }
-  //   ],
-  //   "Attendance": [
-  //     { key: "Attendance Rate", url: "/attendance/rate-today", type: "percentage" }
-  //   ]
-  // };
+  const modules = {
+    "Human Resource Department": [
+      { key: "Total Employees", url: "/emp/count/all", type: "percentage" },
+      { key: "Employees by Department", url: "/employees/by-department", type: "graph" },
+      { key: "Employee Marital Status", url: "/employees/by-employment-marital-status", type: "graph" },
+      { key: "Employee VS Salary", url: "/employees/by-employment-salary", type: "graph" },
+      { key: "Employee Directory", url: "/get/employee-list", type: "list" },
+      { key: "Highest Basic Salary", url: "/get/employee-highest-salary", type: "count" },
+      { key: "Average Salary", url: "/get/employee-average-salary", type: "count" },
+      { key: "Lowest Salary", url: "/employees/by-lowest-salary", type: "count" }
+    ],
+    "Department": [
+      { key: "Department Count", url: "/department/count", type: "count" },
+      { key: "Department List", url: "/department-list", type: "list" }
+    ],
+    "Payroll": [
+      { key: "Payroll Processed", url: "/payroll/processed-rate", type: "percentage" }
+    ],
+    "Attendance": [
+      { key: "Attendance Rate", url: "/attendance/rate-today", type: "percentage" },
+      { key: "Pending Leaves", url: "/get/employee-pending-leaves", type: "count" },
+      { key: "Approved Leaves", url: "/get/employee-pending-leaves", type: "count" }
+    ]
+  };
 
-  const [modules, setModules] = useState({});
+  //const [modules, setModules] = useState({});
 
   useEffect(() => {
     // 🔹 Load user saved config
@@ -55,13 +66,13 @@ function ConfigDashboard() {
       .catch(err => console.error(err));
 
     // 🔹 Load modules from backend
-    fetch(`http://localhost:8282/api/dashboard/modules/${user.username}`)
-      .then(res => res.json())
-      .then(data => {
-        console.log("Modules from backend:", data);
-        setModules(data); // ✅ same format as before
-      })
-      .catch(err => console.error(err));
+    // fetch(`http://localhost:8282/api/dashboard/modules/${user.username}`)
+    //   .then(res => res.json())
+    //   .then(data => {
+    //     console.log("Modules from backend:", data);
+    //     setModules(data); // ✅ same format as before
+    //   })
+    //   .catch(err => console.error(err));
 
   }, []);
 
@@ -157,10 +168,15 @@ function ConfigDashboard() {
               <span>{metric.key}</span>
 
               <button
+                className={`icon-btn-config-dash ${isAdded(metric) ? "added" : "add"}`}
                 disabled={isAdded(metric)}
                 onClick={() => addMetric(metric)}
               >
-                {isAdded(metric) ? "Added" : "Add"}
+                {isAdded(metric) ? (
+                  <CheckIcon fontSize="small" />
+                ) : (
+                  <AddIcon fontSize="small" />
+                )}
               </button>
             </div>
           ))}
@@ -183,7 +199,7 @@ function ConfigDashboard() {
                 <span>{m.key}</span>
 
                 <button
-                  className="icon-btn delete"
+                  className="icon-btn-config-dash delete"
                   onClick={() => removeMetric(mod.module, m.key)}
                 >
                   <DeleteIcon fontSize="small" />
