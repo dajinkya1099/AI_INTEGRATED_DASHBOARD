@@ -36,6 +36,10 @@ from app.redis_client import r
 
 app = FastAPI()
 
+
+from app.dashboard_chat import router as chat_router
+app.include_router(chat_router)
+
 # ✅ ADD CORS HERE (right after app creation)
 app.add_middleware(
     CORSMiddleware,
